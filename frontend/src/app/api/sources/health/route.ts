@@ -1,54 +1,78 @@
 import { NextResponse } from 'next/server';
 import { supabaseFetch } from '@/lib/supabase';
 
+const KNOWN_SOURCES = ['GREENHOUSE', 'ASHBY', 'LEVER', 'WORKDAY'];
+
 export async function GET() {
   try {
-    // Get source health via RPC function
-    const res = await supabaseFetch('rpc/get_source_health', {});
+    // Get active job counts grouped by source directly from jobs table
+    const jobsRes = await supabaseFetch('rpc/get_source_health', {});
 
-    if (!res.ok) {
-      // Fallback: query source_runs directly
-      const fallback = await supabaseFetch('source_runs', {
-        select: 'source,started_at,jobs_found,jobs_inserted,status,error_message',
-        order: 'started_at.desc',
-        limit: '50',
-      });
+    let sourceData: Record<string, any> = {};
 
-      if (!fallback.ok) {
-        return NextResponse.json({ error: 'Failed to fetch health data' }, { status: 500 });
-      }
-
-      const runs = await fallback.json();
-
-      // Group by source
-      const sourceMap: Record<string, any> = {};
-      for (const run of runs) {
-        const src = run.source;
-        if (!sourceMap[src]) {
-          sourceMap[src] = {
-            source: src,
-            last_run: run.started_at,
-            total_runs: 0,
-            successful_runs: 0,
-            jobs_found_total: 0,
-            jobs_inserted_total: 0,
-            last_error: null,
-          };
-        }
-        sourceMap[src].total_runs++;
-        if (run.status === 'SUCCESS') sourceMap[src].successful_runs++;
-        sourceMap[src].jobs_found_total += run.jobs_found || 0;
-        sourceMap[src].jobs_inserted_total += run.jobs_inserted || 0;
-        if (run.error_message && !sourceMap[src].last_error) {
-          sourceMap[src].last_error = run.error_message;
-        }
-      }
-
-      return NextResponse.json(Object.values(sourceMap));
+    // Initialize all known sources with defaults
+    for (const src of KNOWN_SOURCES) {
+      sourceData[src] = {
+        source: src,
+        active_jobs: 0,
+        total_found: 0,
+        last_run: null,
+        last_success: null,
+        status: 'healthy',
+      };
     }
 
-    const data = await res.json();
-    return NextResponse.json(data);
+    if (jobsRes.ok) {
+      const rpcData = await jobsRes.json();
+      // Merge RPC data into known sources
+      for (const item of rpcData) {
+        const src = item.source || item.platform;
+        if (src) {
+          sourceData[src] = { ...sourceData[src], ...item, source: src };
+        }
+      }
+    } else {
+      // Fallback: count jobs per source directly
+      for (const src of KNOWN_SOURCES) {
+        const countRes = await supabaseFetch('jobs', {
+          select: 'id',
+          source: `eq.${src}`,
+          status: 'eq.ACTIVE',
+        }, { Prefer: 'count=exact' });
+
+        if (countRes.ok) {
+          const range = countRes.headers.get('content-range') || '';
+          const total = range.includes('/') ? parseInt(range.split('/')[1], 10) : 0;
+          sourceData[src].active_jobs = total;
+          sourceData[src].total_found = total;
+        }
+      }
+
+      // Get last run info from source_runs
+      const runsRes = await supabaseFetch('source_runs', {
+        select: 'source,started_at,status,jobs_found,jobs_inserted',
+        order: 'started_at.desc',
+        limit: '20',
+      });
+
+      if (runsRes.ok) {
+        const runs = await runsRes.json();
+        for (const run of runs) {
+          const src = run.source;
+          if (sourceData[src] && !sourceData[src].last_run) {
+            sourceData[src].last_run = run.started_at;
+            if (run.status === 'SUCCESS') {
+              sourceData[src].last_success = run.started_at;
+            }
+            sourceData[src].total_found = run.jobs_found || sourceData[src].total_found;
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({
+      sources: Object.values(sourceData),
+    });
   } catch {
     return NextResponse.json({ error: 'Health check failed' }, { status: 500 });
   }

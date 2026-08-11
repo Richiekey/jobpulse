@@ -7,9 +7,12 @@ interface SourceHealthItem {
   source: string;
   last_run?: string;
   last_successful_run?: string;
-  jobs_found_total: number;
-  jobs_inserted_total: number;
-  total_active_jobs: number;
+  last_success?: string;
+  jobs_found_total?: number;
+  jobs_inserted_total?: number;
+  total_active_jobs?: number;
+  active_jobs?: number;
+  total_found?: number;
   last_error?: string;
   error_message?: string;
 }
@@ -134,10 +137,10 @@ export default function HealthPage() {
         </div>
       ) : (
         <div className="stagger-children" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-          {["GREENHOUSE", "ASHBY", "LEVER"].map((platform) => {
+          {["GREENHOUSE", "ASHBY", "LEVER", "WORKDAY"].map((platform) => {
             const item = healthData.find((h) => h.source === platform);
             const meta = platformMeta[platform];
-            const activeJobs = item?.total_active_jobs || 0;
+            const activeJobs = item?.active_jobs ?? item?.total_active_jobs ?? 0;
             const hasError = item?.error_message || item?.last_error;
 
             return (
@@ -186,7 +189,7 @@ export default function HealthPage() {
                       <BarChart3 size={14} style={{ color: "var(--text-muted)" }} /> Total Found
                     </span>
                     <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
-                      {(item?.jobs_found_total || 0).toLocaleString()}
+                      {(item?.total_found ?? item?.jobs_found_total ?? 0).toLocaleString()}
                     </span>
                   </div>
 
@@ -200,7 +203,7 @@ export default function HealthPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Last Success</span>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>
-                      {formatTime(item?.last_successful_run)}
+                      {formatTime(item?.last_success ?? item?.last_successful_run)}
                     </span>
                   </div>
                 </div>
