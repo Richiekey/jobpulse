@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { supabaseFetch } from '@/lib/supabase';
 
-const KNOWN_SOURCES = ['GREENHOUSE', 'ASHBY', 'LEVER', 'WORKDAY'];
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const KNOWN_SOURCES = ['GREENHOUSE', 'ASHBY', 'LEVER', 'WORKDAY', 'WORKABLE', 'APPLYTOJOB', 'JOBVITE', 'ICIMS'];
 
 export async function GET() {
   try {

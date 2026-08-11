@@ -8,6 +8,8 @@ DETECTION_PATTERNS = [
     (ATSPlatform.ASHBY, re.compile(r"jobs\.ashbyhq\.com/([\w-]+)")),
     (ATSPlatform.LEVER, re.compile(r"jobs\.lever\.co/([\w-]+)")),
     (ATSPlatform.WORKABLE, re.compile(r"apply\.workable\.com/([\w-]+)")),
+    (ATSPlatform.APPLYTOJOB, re.compile(r"([\w-]+)\.applytojob\.com")),
+    (ATSPlatform.JOBVITE, re.compile(r"jobs\.jobvite\.com/([\w-]+)")),
     (ATSPlatform.RECRUITEE, re.compile(r"([\w-]+)\.recruitee\.com")),
     (ATSPlatform.TEAMTAILOR, re.compile(r"([\w-]+)\.teamtailor\.com")),
     (ATSPlatform.SMARTRECRUITERS, re.compile(r"jobs\.smartrecruiters\.com/([\w-]+)")),

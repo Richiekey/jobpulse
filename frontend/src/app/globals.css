@@ -203,6 +203,11 @@ body {
 .badge-greenhouse { background: rgba(52, 211, 153, 0.1); color: #34d399; }
 .badge-ashby { background: rgba(251, 191, 36, 0.1); color: #fbbf24; }
 .badge-lever { background: rgba(99, 102, 241, 0.1); color: #818cf8; }
+.badge-workday { background: rgba(236, 72, 153, 0.1); color: #f472b6; }
+.badge-workable { background: rgba(59, 130, 246, 0.1); color: #60a5fa; }
+.badge-applytojob { background: rgba(168, 85, 247, 0.1); color: #c084fc; }
+.badge-jobvite { background: rgba(20, 184, 166, 0.1); color: #2dd4bf; }
+.badge-icims { background: rgba(249, 115, 22, 0.1); color: #fb923c; }
 
 /* ── Stat cards ────────────────────── */
 .stat-card {

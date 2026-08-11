@@ -104,6 +104,11 @@ function sourceBadgeClass(source: string) {
   if (s === "greenhouse") return "badge badge-greenhouse";
   if (s === "ashby") return "badge badge-ashby";
   if (s === "lever") return "badge badge-lever";
+  if (s === "workday") return "badge badge-workday";
+  if (s === "workable") return "badge badge-workable";
+  if (s === "applytojob") return "badge badge-applytojob";
+  if (s === "jobvite") return "badge badge-jobvite";
+  if (s === "icims") return "badge badge-icims";
   return "badge";
 }
 
@@ -552,6 +557,10 @@ export default function JobsDashboard() {
           <option value="ASHBY">Ashby</option>
           <option value="LEVER">Lever</option>
           <option value="WORKDAY">Workday</option>
+          <option value="WORKABLE">Workable</option>
+          <option value="APPLYTOJOB">ApplyToJob</option>
+          <option value="JOBVITE">Jobvite</option>
+          <option value="ICIMS">iCIMS</option>
         </select>
         <button className="btn-primary" onClick={handleSearch} style={{ flexShrink: 0 }}>
           <Search size={15} />
