@@ -6,6 +6,7 @@ from src.config import settings
 from src.database import Database
 from src.adapters.registry import get_adapter
 from src.core.deduplicator import Deduplicator
+from src.core.normalizer import is_allowed_location
 from src.utils.http_client import ThrottledClient
 from src.utils.logger import logger
 from src.models.enums import ATSPlatform
@@ -57,6 +58,15 @@ async def run_scrape(db: Optional[Database] = None):
                 adapter = get_adapter(platform, http_client=http_client)
                 jobs = await adapter.discover_and_normalize(comp_name, ats_identifier)
                 stats["found"] = len(jobs)
+
+                # Filter: only US, Canada, EU, or remote jobs
+                pre_filter = len(jobs)
+                jobs = [j for j in jobs if is_allowed_location(j.location)]
+                filtered_out = pre_filter - len(jobs)
+                if filtered_out > 0:
+                    logger.info("location_filtered", company=comp_name, kept=len(jobs), filtered=filtered_out)
+                    stats["skipped"] += filtered_out
+
                 active_source_job_ids = []
 
                 for job in jobs:

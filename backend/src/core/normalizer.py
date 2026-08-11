@@ -150,3 +150,92 @@ def compute_deduplication_key(company: str, title: str, location: Optional[str])
     loc = (location or "").strip().lower()
     raw = f"{comp}|{norm_t}|{loc}"
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
+
+# ── Location Filter ─────────────────────────────────────────────
+
+US_STATES = {
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+    "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
+    "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
+    "maine", "maryland", "massachusetts", "michigan", "minnesota",
+    "mississippi", "missouri", "montana", "nebraska", "nevada",
+    "new hampshire", "new jersey", "new mexico", "new york",
+    "north carolina", "north dakota", "ohio", "oklahoma", "oregon",
+    "pennsylvania", "rhode island", "south carolina", "south dakota",
+    "tennessee", "texas", "utah", "vermont", "virginia", "washington",
+    "west virginia", "wisconsin", "wyoming", "district of columbia",
+}
+
+US_STATE_CODES = {
+    "al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi",
+    "id", "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi",
+    "mn", "ms", "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc",
+    "nd", "oh", "ok", "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut",
+    "vt", "va", "wa", "wv", "wi", "wy", "dc",
+}
+
+CA_PROVINCES = {
+    "ontario", "quebec", "british columbia", "alberta", "manitoba",
+    "saskatchewan", "nova scotia", "new brunswick",
+    "newfoundland", "prince edward island", "toronto", "vancouver",
+    "montreal", "calgary", "ottawa", "winnipeg", "edmonton",
+}
+
+EU_COUNTRIES = {
+    "germany", "france", "netherlands", "spain", "italy", "portugal",
+    "ireland", "sweden", "denmark", "norway", "finland", "austria",
+    "belgium", "switzerland", "poland", "czech republic", "czechia",
+    "romania", "hungary", "greece", "croatia", "bulgaria", "slovakia",
+    "slovenia", "estonia", "latvia", "lithuania", "luxembourg", "malta",
+    "cyprus", "iceland",
+    # Major EU cities
+    "berlin", "munich", "hamburg", "london", "paris", "amsterdam",
+    "barcelona", "madrid", "dublin", "stockholm", "copenhagen",
+    "oslo", "helsinki", "vienna", "brussels", "zurich", "geneva",
+    "warsaw", "prague", "bucharest", "budapest", "lisbon", "milan",
+    "rome",
+}
+
+ALLOWED_KEYWORDS = {
+    "united states", "usa", "u.s.", "u.s.a", "canada",
+    "remote", "anywhere", "global", "worldwide", "north america",
+    "europe", "emea", "eu", "uk", "united kingdom", "england", "scotland",
+}
+
+def is_allowed_location(location: Optional[str]) -> bool:
+    """Check if a job location is in US, Canada, EU, or remote."""
+    if not location or not location.strip():
+        return True  # No location = assume remote, allow through
+
+    loc = location.strip().lower()
+
+    # Direct keyword match
+    for kw in ALLOWED_KEYWORDS:
+        if kw in loc:
+            return True
+
+    # US state names
+    for state in US_STATES:
+        if state in loc:
+            return True
+
+    # US state codes (match ", CA" or ", NY" patterns)
+    parts = re.split(r'[,\s•·|/]+', loc)
+    for part in parts:
+        clean = part.strip().rstrip('.')
+        if clean in US_STATE_CODES:
+            return True
+
+    # Canadian provinces/cities
+    for prov in CA_PROVINCES:
+        if prov in loc:
+            return True
+
+    # EU countries/cities
+    for country in EU_COUNTRIES:
+        if country in loc:
+            return True
+
+    return False
+
