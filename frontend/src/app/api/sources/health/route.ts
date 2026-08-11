@@ -5,12 +5,9 @@ const KNOWN_SOURCES = ['GREENHOUSE', 'ASHBY', 'LEVER', 'WORKDAY'];
 
 export async function GET() {
   try {
-    // Get active job counts grouped by source directly from jobs table
-    const jobsRes = await supabaseFetch('rpc/get_source_health', {});
+    const sourceData: Record<string, any> = {};
 
-    let sourceData: Record<string, any> = {};
-
-    // Initialize all known sources with defaults
+    // Initialize all sources
     for (const src of KNOWN_SOURCES) {
       sourceData[src] = {
         source: src,
@@ -22,50 +19,47 @@ export async function GET() {
       };
     }
 
+    // Get all active job counts in one query, grouped by source
+    const jobsRes = await supabaseFetch('jobs', {
+      select: 'source',
+      status: 'eq.ACTIVE',
+      limit: '5000',
+    });
+
     if (jobsRes.ok) {
-      const rpcData = await jobsRes.json();
-      // Merge RPC data into known sources
-      for (const item of rpcData) {
-        const src = item.source || item.platform;
-        if (src) {
-          sourceData[src] = { ...sourceData[src], ...item, source: src };
+      const jobs = await jobsRes.json();
+      // Count by source
+      const counts: Record<string, number> = {};
+      for (const job of jobs) {
+        const src = job.source;
+        counts[src] = (counts[src] || 0) + 1;
+      }
+      for (const [src, count] of Object.entries(counts)) {
+        if (sourceData[src]) {
+          sourceData[src].active_jobs = count;
+          sourceData[src].total_found = count;
         }
       }
-    } else {
-      // Fallback: count jobs per source directly
-      for (const src of KNOWN_SOURCES) {
-        const countRes = await supabaseFetch('jobs', {
-          select: 'id',
-          source: `eq.${src}`,
-          status: 'eq.ACTIVE',
-        }, { Prefer: 'count=exact' });
+    }
 
-        if (countRes.ok) {
-          const range = countRes.headers.get('content-range') || '';
-          const total = range.includes('/') ? parseInt(range.split('/')[1], 10) : 0;
-          sourceData[src].active_jobs = total;
-          sourceData[src].total_found = total;
-        }
-      }
+    // Get last run info from source_runs
+    const runsRes = await supabaseFetch('source_runs', {
+      select: 'source,started_at,status',
+      order: 'started_at.desc',
+      limit: '20',
+    });
 
-      // Get last run info from source_runs
-      const runsRes = await supabaseFetch('source_runs', {
-        select: 'source,started_at,status,jobs_found,jobs_inserted',
-        order: 'started_at.desc',
-        limit: '20',
-      });
-
-      if (runsRes.ok) {
-        const runs = await runsRes.json();
-        for (const run of runs) {
-          const src = run.source;
-          if (sourceData[src] && !sourceData[src].last_run) {
-            sourceData[src].last_run = run.started_at;
-            if (run.status === 'SUCCESS') {
-              sourceData[src].last_success = run.started_at;
-            }
-            sourceData[src].total_found = run.jobs_found || sourceData[src].total_found;
+    if (runsRes.ok) {
+      const runs = await runsRes.json();
+      const seen: Record<string, boolean> = {};
+      for (const run of runs) {
+        const src = run.source;
+        if (sourceData[src] && !seen[src]) {
+          sourceData[src].last_run = run.started_at;
+          if (run.status === 'SUCCESS') {
+            sourceData[src].last_success = run.started_at;
           }
+          seen[src] = true;
         }
       }
     }
