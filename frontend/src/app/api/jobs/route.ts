@@ -58,7 +58,15 @@ export async function GET(req: NextRequest) {
     const res = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
 
     if (!res.ok) {
-      return NextResponse.json({ error: 'Database query failed' }, { status: 500 });
+      const errorBody = await res.text();
+      const hasUrl = !!process.env.SUPABASE_URL;
+      const hasKey = !!(process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY);
+      return NextResponse.json({ 
+        error: 'Database query failed', 
+        status: res.status,
+        detail: errorBody.slice(0, 200),
+        env: { hasUrl, hasKey },
+      }, { status: 500 });
     }
 
     const results = await res.json();
