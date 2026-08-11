@@ -266,19 +266,36 @@ class Database:
         return rows[0] if rows else None
 
     async def mark_stale_jobs(self, source: str, company_identifier: str, active_source_job_ids: List[str]):
-        """Uses RPC function to mark jobs not in active list as STALE."""
-        if not self.connected:
+        """Mark jobs not in active list as STALE using direct REST API."""
+        if not self.connected or not active_source_job_ids:
             return
-        resp = await self.client.post(
-            f"{self.rest_url}/rpc/mark_stale_jobs",
-            json={
-                "p_source": source,
-                "p_company_id": company_identifier,
-                "p_active_ids": active_source_job_ids,
-            },
-        )
-        if resp.status_code >= 300:
-            logger.error("mark_stale_jobs_failed", status=resp.status_code, body=resp.text[:200])
+        try:
+            # Get all active jobs for this source + company that aren't in the active list
+            params = {
+                "select": "id,source_job_id",
+                "source": f"eq.{source}",
+                "status": "eq.ACTIVE",
+                "source_job_id": f"not.in.({','.join(active_source_job_ids[:500])})",
+                "limit": "500",
+            }
+            resp = await self.client.get(f"{self.rest_url}/jobs", params=params)
+            if resp.status_code >= 300:
+                logger.error("mark_stale_query_failed", status=resp.status_code, body=resp.text[:200])
+                return
+            stale_jobs = resp.json()
+            if not stale_jobs:
+                return
+            # Patch each stale job
+            stale_ids = [j["id"] for j in stale_jobs]
+            for job_id in stale_ids[:100]:  # Limit to avoid long operations
+                await self.client.patch(
+                    f"{self.rest_url}/jobs",
+                    params={"id": f"eq.{job_id}"},
+                    json={"status": "STALE"},
+                )
+            logger.info("marked_jobs_stale", count=len(stale_ids))
+        except Exception as e:
+            logger.error("mark_stale_jobs_failed", error=str(e))
 
     # ── Companies ───────────────────────────────────────────────
 
