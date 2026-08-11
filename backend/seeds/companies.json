@@ -1,0 +1,31 @@
+{
+    "greenhouse": [
+        {"name": "Stripe", "ats_identifier": "stripe", "website": "https://stripe.com", "career_url": "https://boards.greenhouse.io/stripe"},
+        {"name": "Airbnb", "ats_identifier": "airbnb", "website": "https://airbnb.com", "career_url": "https://boards.greenhouse.io/airbnb"},
+        {"name": "Coinbase", "ats_identifier": "coinbase", "website": "https://coinbase.com", "career_url": "https://boards.greenhouse.io/coinbase"},
+        {"name": "Discord", "ats_identifier": "discord", "website": "https://discord.com", "career_url": "https://boards.greenhouse.io/discord"},
+        {"name": "Figma", "ats_identifier": "figma", "website": "https://figma.com", "career_url": "https://boards.greenhouse.io/figma"},
+        {"name": "Notion", "ats_identifier": "notion", "website": "https://notion.so", "career_url": "https://boards.greenhouse.io/notion"},
+        {"name": "GitLab", "ats_identifier": "gitlab", "website": "https://gitlab.com", "career_url": "https://boards.greenhouse.io/gitlab"},
+        {"name": "Cloudflare", "ats_identifier": "cloudflare", "website": "https://cloudflare.com", "career_url": "https://boards.greenhouse.io/cloudflare"},
+        {"name": "Ramp", "ats_identifier": "ramp", "website": "https://ramp.com", "career_url": "https://boards.greenhouse.io/ramp"},
+        {"name": "DoorDash", "ats_identifier": "doordash", "website": "https://doordash.com", "career_url": "https://boards.greenhouse.io/doordash"}
+    ],
+    "ashby": [
+        {"name": "OpenAI", "ats_identifier": "openai", "website": "https://openai.com", "career_url": "https://jobs.ashbyhq.com/openai"},
+        {"name": "Anthropic", "ats_identifier": "anthropic", "website": "https://anthropic.com", "career_url": "https://jobs.ashbyhq.com/anthropic"},
+        {"name": "Linear", "ats_identifier": "linear", "website": "https://linear.app", "career_url": "https://jobs.ashbyhq.com/linear"},
+        {"name": "Vercel", "ats_identifier": "vercel", "website": "https://vercel.com", "career_url": "https://jobs.ashbyhq.com/vercel"},
+        {"name": "Supabase", "ats_identifier": "supabase", "website": "https://supabase.com", "career_url": "https://jobs.ashbyhq.com/supabase"},
+        {"name": "Resend", "ats_identifier": "resend", "website": "https://resend.com", "career_url": "https://jobs.ashbyhq.com/resend"},
+        {"name": "Deno", "ats_identifier": "deno", "website": "https://deno.com", "career_url": "https://jobs.ashbyhq.com/deno"},
+        {"name": "Warp", "ats_identifier": "warp", "website": "https://warp.dev", "career_url": "https://jobs.ashbyhq.com/warp"}
+    ],
+    "lever": [
+        {"name": "Netflix", "ats_identifier": "netflix", "website": "https://netflix.com", "career_url": "https://jobs.lever.co/netflix"},
+        {"name": "Spotify", "ats_identifier": "spotifyjobs", "website": "https://spotify.com", "career_url": "https://jobs.lever.co/spotifyjobs"},
+        {"name": "Lyft", "ats_identifier": "lyft", "website": "https://lyft.com", "career_url": "https://jobs.lever.co/lyft"},
+        {"name": "Lime", "ats_identifier": "lime", "website": "https://li.me", "career_url": "https://jobs.lever.co/lime"},
+        {"name": "Pave", "ats_identifier": "pave", "website": "https://pave.com", "career_url": "https://jobs.lever.co/pave"}
+    ]
+}

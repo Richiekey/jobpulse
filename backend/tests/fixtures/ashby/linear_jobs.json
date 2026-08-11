@@ -1,0 +1,21 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "ashby-9999",
+      "title": "Senior Frontend Engineer",
+      "location": "Remote - US",
+      "workplaceType": "Remote",
+      "employmentType": "FullTime",
+      "department": "Product Engineering",
+      "descriptionHtml": "<p>Linear is looking for a Senior Frontend Engineer. Salary range: $160k - $210k per year.</p>",
+      "publishedAt": "2026-08-02T10:30:00.000Z",
+      "address": { "postalAddress": { "addressLocality": "San Francisco", "addressCountry": "US" } },
+      "jobUrl": "https://jobs.ashbyhq.com/linear/ashby-9999",
+      "applyUrl": "https://jobs.ashbyhq.com/linear/ashby-9999/application",
+      "compensation": {
+        "compensationTierSummary": "$160k - $210k"
+      }
+    }
+  ]
+}

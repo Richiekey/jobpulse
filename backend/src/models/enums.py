@@ -1,0 +1,34 @@
+from enum import Enum
+
+class EmploymentType(str, Enum):
+    FULL_TIME = "FULL_TIME"
+    PART_TIME = "PART_TIME"
+    CONTRACT = "CONTRACT"
+    TEMPORARY = "TEMPORARY"
+    INTERNSHIP = "INTERNSHIP"
+    OTHER = "OTHER"
+
+class RemoteType(str, Enum):
+    REMOTE = "REMOTE"
+    HYBRID = "HYBRID"
+    ONSITE = "ONSITE"
+    UNKNOWN = "UNKNOWN"
+
+class JobStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    STALE = "STALE"
+    EXPIRED = "EXPIRED"
+
+class ATSPlatform(str, Enum):
+    GREENHOUSE = "GREENHOUSE"
+    ASHBY = "ASHBY"
+    LEVER = "LEVER"
+    WORKABLE = "WORKABLE"
+    RECRUITEE = "RECRUITEE"
+    TEAMTAILOR = "TEAMTAILOR"
+    SMARTRECRUITERS = "SMARTRECRUITERS"
+    BAMBOOHR = "BAMBOOHR"
+    ICIMS = "ICIMS"
+    JOBDIVA = "JOBDIVA"
+    WORKDAY = "WORKDAY"
+    UNKNOWN = "UNKNOWN"

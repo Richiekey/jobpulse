@@ -1,0 +1,17 @@
+{
+  "jobs": [
+    {
+      "id": 1234567,
+      "title": "Software Engineer, Infrastructure",
+      "updated_at": "2026-08-01T12:00:00-04:00",
+      "location": { "name": "San Francisco, CA (Remote)" },
+      "absolute_url": "https://boards.greenhouse.io/stripe/jobs/1234567",
+      "departments": [{ "id": 1, "name": "Engineering" }],
+      "offices": [{ "id": 10, "name": "San Francisco", "location": "San Francisco, California, United States" }],
+      "content": "&lt;p&gt;Join Stripe as a Software Engineer. Salary: $150,000 - $220,000 USD per year.&lt;/p&gt;",
+      "metadata": [
+        { "name": "Employment Type", "value": "Full-time" }
+      ]
+    }
+  ]
+}

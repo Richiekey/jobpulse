@@ -1,0 +1,21 @@
+[
+  {
+    "id": "lever-7777",
+    "text": "Data Scientist, Personalization",
+    "createdAt": 1785500000000,
+    "hostedUrl": "https://jobs.lever.co/netflix/lever-7777",
+    "applyUrl": "https://jobs.lever.co/netflix/lever-7777/apply",
+    "categories": {
+      "commitment": "Full-time",
+      "department": "Data Science & Engineering",
+      "location": "Los Gatos, CA"
+    },
+    "description": "<p>Build recommendation algorithms at Netflix.</p>",
+    "lists": [
+      {
+        "text": "Compensation",
+        "content": "<p>Estimated salary range: $200,000 - $350,000 USD annually.</p>"
+      }
+    ]
+  }
+]
