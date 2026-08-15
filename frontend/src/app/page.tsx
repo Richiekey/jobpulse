@@ -427,13 +427,15 @@ export default function JobsDashboard() {
     });
   };
 
+  const PAGE_SIZE = 12;
+
   const fetchJobs = useCallback(async (p = page) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       params.set("page", String(p));
-      params.set("per_page", "12");
+      params.set("per_page", "24");
       if (query) params.set("q", query);
       if (locationFilter) params.set("location", locationFilter);
       if (remoteType) params.set("remote_type", remoteType);
@@ -449,7 +451,7 @@ export default function JobsDashboard() {
         const data = await res.json();
         setJobs(data.items || []);
         setTotal(data.total || 0);
-        setTotalPages(data.total_pages || 0);
+        setTotalPages(Math.ceil((data.total || 0) / PAGE_SIZE));
       } else {
         setError(`Server error (${res.status})`);
       }
@@ -469,6 +471,55 @@ export default function JobsDashboard() {
 
   const handleSearch = () => { setPage(1); fetchJobs(1); };
 
+  // Filter out applied/hidden jobs
+  const visibleJobs = jobs.filter((job) => {
+    if (!showApplied && appliedSet.has(job.id)) return false;
+    if (!showHidden && hiddenSet.has(job.id)) return false;
+    return true;
+  });
+
+  // Display exactly PAGE_SIZE jobs on the current view
+  const displayedJobs = visibleJobs.slice(0, PAGE_SIZE);
+
+  // Background auto-replenish: when visible jobs drop below buffer threshold, pull the next batch
+  useEffect(() => {
+    if (loading || visibleJobs.length >= PAGE_SIZE + 6 || jobs.length === 0 || jobs.length >= total) {
+      return;
+    }
+
+    const replenishNextJobs = async () => {
+      try {
+        const nextBatchPage = Math.floor(jobs.length / 12) + 1;
+        const params = new URLSearchParams();
+        params.set("page", String(nextBatchPage));
+        params.set("per_page", "12");
+        if (query) params.set("q", query);
+        if (locationFilter) params.set("location", locationFilter);
+        if (remoteType) params.set("remote_type", remoteType);
+        if (source) params.set("source", source);
+        if (roleCategory) params.set("role_category", roleCategory);
+        if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
+
+        const res = await fetch(`${API_BASE}/jobs?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          const newItems: Job[] = data.items || [];
+          if (newItems.length > 0) {
+            setJobs((prev) => {
+              const existingIds = new Set(prev.map((j) => j.id));
+              const uniqueNew = newItems.filter((j) => !existingIds.has(j.id));
+              return [...prev, ...uniqueNew];
+            });
+          }
+        }
+      } catch {
+        // Silently ignore background replenishment error
+      }
+    };
+
+    replenishNextJobs();
+  }, [visibleJobs.length, loading, jobs.length, total, query, locationFilter, remoteType, source, roleCategory, selectedSkills]);
+
   // Fetch full job for modal
   const openJobModal = async (job: Job) => {
     setSelectedJob(job);
@@ -483,13 +534,6 @@ export default function JobsDashboard() {
       setFullJobData(job);
     }
   };
-
-  // Filter out applied/hidden jobs
-  const visibleJobs = jobs.filter((job) => {
-    if (!showApplied && appliedSet.has(job.id)) return false;
-    if (!showHidden && hiddenSet.has(job.id)) return false;
-    return true;
-  });
 
   const appliedCount = jobs.filter((j) => appliedSet.has(j.id)).length;
   const hiddenCount = jobs.filter((j) => hiddenSet.has(j.id)).length;
@@ -656,15 +700,16 @@ export default function JobsDashboard() {
       ) : (
         <>
           <div className="stagger-children" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
-            {visibleJobs.map((job) => {
+            {displayedJobs.map((job) => {
               const freshness = freshnessColor(job.posted_at || job.created_at);
               const isSaved = savedSet.has(job.id);
               const isApplied = appliedSet.has(job.id);
+              const isHidden = hiddenSet.has(job.id);
 
               return (
                 <div
                   key={job.id}
-                  className="glass-card"
+                  className="glass-card job-card"
                   style={{ padding: 22, display: "flex", flexDirection: "column", cursor: "pointer", position: "relative" }}
                   onClick={() => openJobModal(job)}
                 >
@@ -739,7 +784,28 @@ export default function JobsDashboard() {
                     <span style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
                       <Clock size={12} /> {timeAgo(job.posted_at || job.created_at)}
                     </span>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleApplied(job.id); }}
+                        style={{
+                          background: isApplied ? "var(--success-soft)" : "rgba(255,255,255,0.04)",
+                          color: isApplied ? "var(--success)" : "var(--text-muted)",
+                          border: `1px solid ${isApplied ? "rgba(52,211,153,0.3)" : "var(--border-subtle)"}`,
+                          padding: "4px 8px",
+                          borderRadius: 8,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          transition: "all 0.15s",
+                        }}
+                        title={isApplied ? "Marked as Applied" : "Mark as Applied"}
+                      >
+                        <CheckCircle2 size={13} />
+                        {isApplied ? "Applied" : "Apply"}
+                      </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleSaved(job.id); }}
                         style={{ background: "none", border: "none", cursor: "pointer", color: isSaved ? "var(--warning)" : "var(--text-muted)", padding: 4, transition: "color 0.15s" }}
@@ -750,9 +816,9 @@ export default function JobsDashboard() {
                       <button
                         onClick={(e) => { e.stopPropagation(); openJobModal(job); }}
                         className="btn-primary"
-                        style={{ padding: "6px 14px", fontSize: 11 }}
+                        style={{ padding: "5px 12px", fontSize: 11 }}
                       >
-                        Apply <ExternalLink size={11} />
+                        Details <ExternalLink size={11} />
                       </button>
                     </div>
                   </div>
