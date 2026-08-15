@@ -32,7 +32,7 @@ export default function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const fetchApplications = useCallback(async () => {
-    if (!user) return;
+    if (!user?.id) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -49,15 +49,15 @@ export default function ApplicationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchApplications();
     } else if (!authLoading) {
       setLoading(false);
     }
-  }, [user, authLoading, fetchApplications]);
+  }, [user?.id, authLoading, fetchApplications]);
 
   if (authLoading) {
     return (

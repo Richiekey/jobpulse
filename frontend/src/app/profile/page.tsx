@@ -80,7 +80,7 @@ export default function ProfilePage() {
       setGoogleSheetWebhook(profile.google_sheet_webhook || "");
       setAutoSyncSheet(profile.auto_sync_sheet ?? true);
     }
-  }, [profile]);
+  }, [profile?.id, profile?.updated_at]);
 
   if (authLoading) {
     return (

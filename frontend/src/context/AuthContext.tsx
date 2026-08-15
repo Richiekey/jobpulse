@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -55,48 +55,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchingProfileRef = useRef<string | null>(null);
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, userEmail?: string) => {
+    if (!userId || fetchingProfileRef.current === userId) return;
+    fetchingProfileRef.current = userId;
+
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (data && !error) {
         setProfile(data as UserProfile);
-      } else if (error && error.code === "PGRST116") {
-        // Profile doesn't exist yet — create a fallback default
+      } else {
+        // Create initial fallback profile if not found
+        const newProfile = {
+          id: userId,
+          email: userEmail || "",
+          full_name: "",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
         const { data: inserted } = await supabase
           .from("profiles")
-          .insert({ id: userId, email: user?.email || "" })
+          .upsert(newProfile)
           .select()
-          .single();
+          .maybeSingle();
         if (inserted) setProfile(inserted as UserProfile);
       }
     } catch (e) {
       console.error("Error fetching user profile:", e);
+    } finally {
+      fetchingProfileRef.current = null;
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
-    // Initial session
+    let isMounted = true;
+
+    // 1. Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
       setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProfile(currentUser.id, currentUser.email);
       }
       setLoading(false);
+    }).catch(() => {
+      if (isMounted) setLoading(false);
     });
 
-    // Auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+    // 2. Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!isMounted) return;
+      setSession(newSession);
+      const currentUser = newSession?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        await fetchProfile(currentUser.id, currentUser.email);
       } else {
         setProfile(null);
       }
@@ -104,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
@@ -114,16 +137,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password: pass,
         options: {
-          data: {
-            full_name: fullName,
-          },
+          data: { full_name: fullName },
         },
       });
 
       if (error) return { error: error.message };
       if (data.user) {
         setUser(data.user);
-        await fetchProfile(data.user.id);
+        await fetchProfile(data.user.id, email);
       }
       return {};
     } catch (e: any) {
@@ -141,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error: error.message };
       if (data.user) {
         setUser(data.user);
-        await fetchProfile(data.user.id);
+        await fetchProfile(data.user.id, email);
       }
       return {};
     } catch (e: any) {
@@ -150,10 +171,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+    }
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
@@ -167,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         .eq("id", user.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) return { success: false, error: error.message };
       if (data) setProfile(data as UserProfile);
@@ -178,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user.id, user.email);
   };
 
   // Google Sheets & Cloud application logger
