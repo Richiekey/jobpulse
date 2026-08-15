@@ -619,17 +619,17 @@ export default function JobsDashboard() {
           <option value="HYBRID">Hybrid</option>
           <option value="ONSITE">Onsite</option>
         </select>
-        <select value={source} onChange={(e) => setSource(e.target.value)} className="select-field" style={{ flex: "0 1 140px" }}>
-          <option value="">All Sources</option>
-          <option value="GREENHOUSE">Greenhouse</option>
-          <option value="ASHBY">Ashby</option>
-          <option value="LEVER">Lever</option>
-          <option value="WORKDAY">Workday</option>
-          <option value="WORKABLE">Workable</option>
-          <option value="APPLYTOJOB">ApplyToJob</option>
-          <option value="JOBVITE">Jobvite</option>
-          <option value="ICIMS">iCIMS</option>
-          <option value="JOBRIGHT">Jobright</option>
+        <select value={source} onChange={(e) => setSource(e.target.value)} className="select-field" style={{ flex: "0 1 170px" }}>
+          <option value="">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "14k+"})</option>
+          <option value="JOBRIGHT">Jobright (11.3k+)</option>
+          <option value="GREENHOUSE">Greenhouse (2.0k+)</option>
+          <option value="ASHBY">Ashby (920+)</option>
+          <option value="LEVER">Lever (300+)</option>
+          <option value="WORKDAY">Workday (46)</option>
+          <option value="WORKABLE">Workable (0)</option>
+          <option value="APPLYTOJOB">ApplyToJob (0)</option>
+          <option value="JOBVITE">Jobvite (0)</option>
+          <option value="ICIMS">iCIMS (0)</option>
         </select>
         <button className="btn-primary" onClick={handleSearch} style={{ flexShrink: 0 }}>
           <Search size={15} />
@@ -715,10 +715,34 @@ export default function JobsDashboard() {
           </button>
         </div>
       ) : visibleJobs.length === 0 ? (
-        <div className="animate-fade-in-up" style={{ textAlign: "center", padding: "80px 20px", background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)" }}>
-          <Briefcase size={48} style={{ color: "var(--text-muted)", margin: "0 auto 16px" }} />
-          <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--text-secondary)", margin: 0 }}>No jobs found</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 8 }}>Try adjusting your filters or import new job URLs</p>
+        <div className="animate-fade-in-up" style={{ textAlign: "center", padding: "70px 20px", background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", maxWidth: 580, margin: "0 auto" }}>
+          <Briefcase size={44} style={{ color: "var(--text-muted)", margin: "0 auto 16px" }} />
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px" }}>
+            {source ? `No active jobs from ${source} yet` : "No jobs found"}
+          </h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13, margin: "0 0 20px", lineHeight: 1.6 }}>
+            {source
+              ? `We currently aggregate 14,000+ live jobs from Jobright, Greenhouse, Ashby, Lever, and Workday. You can also import any company career board URL directly.`
+              : "Try adjusting your search keywords, location, or clearing applied/hidden filters."}
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            {source && (
+              <button
+                className="btn-primary"
+                onClick={() => setSource("")}
+                style={{ padding: "8px 16px", fontSize: 13 }}
+              >
+                Show All Sources
+              </button>
+            )}
+            <a
+              href="/import"
+              className="btn-secondary"
+              style={{ padding: "8px 16px", fontSize: 13, textDecoration: "none" }}
+            >
+              Import Company Board
+            </a>
+          </div>
         </div>
       ) : (
         <>
