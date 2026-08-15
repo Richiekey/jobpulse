@@ -59,12 +59,17 @@ async def run_scrape(db: Optional[Database] = None):
                 jobs = await adapter.discover_and_normalize(comp_name, ats_identifier)
                 stats["found"] = len(jobs)
 
-                # Filter: only US, Canada, EU, or remote jobs
+                # Filter: only US, Canada, EU, or remote jobs + strictly within 30 days
                 pre_filter = len(jobs)
-                jobs = [j for j in jobs if is_allowed_location(j.location)]
+                cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
+                jobs = [
+                    j for j in jobs
+                    if is_allowed_location(j.location)
+                    and (j.posted_at is None or j.posted_at.replace(tzinfo=timezone.utc) if j.posted_at.tzinfo is None else j.posted_at >= cutoff_date)
+                ]
                 filtered_out = pre_filter - len(jobs)
                 if filtered_out > 0:
-                    logger.info("location_filtered", company=comp_name, kept=len(jobs), filtered=filtered_out)
+                    logger.info("jobs_filtered_location_or_age", company=comp_name, kept=len(jobs), filtered=filtered_out)
                     stats["skipped"] += filtered_out
 
                 active_source_job_ids = [j.source_job_id for j in jobs]

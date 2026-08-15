@@ -535,15 +535,15 @@ class Database:
             logger.info("cleanup_no_old_jobs", cutoff=cutoff)
             return 0
 
-        # Delete old jobs
+        # Delete old jobs where posted_at < cutoff or (posted_at is null and created_at < cutoff)
         resp = await self.client.delete(
             f"{self.rest_url}/jobs",
-            params={"created_at": f"lt.{cutoff}"},
+            params={"or": f"(posted_at.lt.{cutoff},and(posted_at.is.null,created_at.lt.{cutoff}))"},
         )
 
         if resp.status_code < 300:
-            logger.info("cleanup_old_jobs_complete", deleted=total, cutoff=cutoff)
-            return total
+            logger.info("cleanup_old_jobs_complete", cutoff=cutoff)
+            return 1
         else:
             logger.error("cleanup_old_jobs_failed", status=resp.status_code, body=resp.text[:200])
             return 0

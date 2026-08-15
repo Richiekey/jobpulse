@@ -12,9 +12,12 @@ export async function GET(req: NextRequest) {
   const perPage = Math.min(parseInt(sp.get('per_page') || '12', 10), 50);
   const offset = (page - 1) * perPage;
 
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
   const params: Record<string, string> = {
     select: SELECT_FIELDS,
     status: 'eq.ACTIVE',
+    or: `(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`,
     limit: String(perPage),
     offset: String(offset),
   };
