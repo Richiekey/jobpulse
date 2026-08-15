@@ -23,7 +23,12 @@ const platformMeta: Record<string, { color: string; gradient: string }> = {
   GREENHOUSE: { color: "#34d399", gradient: "linear-gradient(135deg, rgba(52,211,153,0.12), rgba(52,211,153,0.03))" },
   ASHBY: { color: "#fbbf24", gradient: "linear-gradient(135deg, rgba(251,191,36,0.12), rgba(251,191,36,0.03))" },
   LEVER: { color: "#818cf8", gradient: "linear-gradient(135deg, rgba(129,140,248,0.12), rgba(129,140,248,0.03))" },
-  WORKDAY: { color: "#f97316", gradient: "linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.03))" },
+  WORKDAY: { color: "#f472b6", gradient: "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(236,72,153,0.03))" },
+  WORKABLE: { color: "#60a5fa", gradient: "linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0.03))" },
+  APPLYTOJOB: { color: "#c084fc", gradient: "linear-gradient(135deg, rgba(168,85,247,0.12), rgba(168,85,247,0.03))" },
+  JOBVITE: { color: "#2dd4bf", gradient: "linear-gradient(135deg, rgba(20,184,166,0.12), rgba(20,184,166,0.03))" },
+  ICIMS: { color: "#fb923c", gradient: "linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.03))" },
+  JOBRIGHT: { color: "#00f0a0", gradient: "linear-gradient(135deg, rgba(0,240,160,0.12), rgba(0,240,160,0.03))" },
 };
 
 function formatTime(dateStr?: string) {
@@ -43,7 +48,8 @@ export default function HealthPage() {
   const [healthData, setHealthData] = useState<SourceHealthItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
-  const [triggerMsg, setTriggerMsg] = useState("");
+  const [triggerStatus, setTriggerStatus] = useState<"success" | "running" | "error" | "">("");
+  const [triggerMessageText, setTriggerMessageText] = useState("");
 
   const fetchHealth = async () => {
     setLoading(true);
@@ -64,17 +70,25 @@ export default function HealthPage() {
 
   const handleTriggerScrape = async () => {
     setTriggering(true);
-    setTriggerMsg("");
+    setTriggerStatus("");
+    setTriggerMessageText("");
     try {
       const res = await fetch(`${API_BASE}/scrape/trigger`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setTriggerMsg("success");
-        setTimeout(fetchHealth, 5000);
+        setTriggerStatus("success");
+        setTriggerMessageText(data.message || "Scrape dispatched successfully — results will update shortly.");
+        setTimeout(fetchHealth, 6000);
       } else if (res.status === 409) {
-        setTriggerMsg("running");
+        setTriggerStatus("running");
+        setTriggerMessageText("A scrape run is already in progress.");
+      } else {
+        setTriggerStatus("error");
+        setTriggerMessageText(data.error || data.hint || "Failed to trigger scrape.");
       }
     } catch {
-      setTriggerMsg("error");
+      setTriggerStatus("error");
+      setTriggerMessageText("Network error when contacting scrape trigger endpoint.");
     } finally {
       setTriggering(false);
     }
@@ -100,7 +114,7 @@ export default function HealthPage() {
       </div>
 
       {/* Toast */}
-      {triggerMsg && (
+      {triggerStatus && (
         <div
           className="animate-slide-in"
           style={{
@@ -112,21 +126,22 @@ export default function HealthPage() {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: triggerMsg === "success" ? "var(--success-soft)" : triggerMsg === "running" ? "var(--warning-soft)" : "var(--danger-soft)",
-            color: triggerMsg === "success" ? "var(--success)" : triggerMsg === "running" ? "var(--warning)" : "var(--danger)",
-            border: `1px solid ${triggerMsg === "success" ? "rgba(52,211,153,0.2)" : triggerMsg === "running" ? "rgba(251,191,36,0.2)" : "rgba(248,113,113,0.2)"}`,
+            background: triggerStatus === "success" ? "var(--success-soft)" : triggerStatus === "running" ? "var(--warning-soft)" : "var(--danger-soft)",
+            color: triggerStatus === "success" ? "var(--success)" : triggerStatus === "running" ? "var(--warning)" : "var(--danger)",
+            border: `1px solid ${triggerStatus === "success" ? "rgba(52,211,153,0.2)" : triggerStatus === "running" ? "rgba(251,191,36,0.2)" : "rgba(248,113,113,0.2)"}`,
           }}
         >
-          {triggerMsg === "success" && <><CheckCircle2 size={16} /> Scrape triggered — results will appear in a few seconds</>}
-          {triggerMsg === "running" && <><Loader2 size={16} /> A scrape run is already in progress</>}
-          {triggerMsg === "error" && <><XCircle size={16} /> Failed to trigger scrape</>}
+          {triggerStatus === "success" && <CheckCircle2 size={16} />}
+          {triggerStatus === "running" && <Loader2 size={16} />}
+          {triggerStatus === "error" && <XCircle size={16} />}
+          <span>{triggerMessageText}</span>
         </div>
       )}
 
       {/* Platform Cards */}
       {loading ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="glass-card" style={{ padding: 28 }}>
               <div className="skeleton" style={{ width: 140, height: 22, marginBottom: 24 }} />
               <div className="skeleton" style={{ width: "100%", height: 16, marginBottom: 12 }} />
@@ -137,9 +152,14 @@ export default function HealthPage() {
         </div>
       ) : (
         <div className="stagger-children" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-          {["GREENHOUSE", "ASHBY", "LEVER", "WORKDAY"].map((platform) => {
-            const item = healthData.find((h) => h.source === platform);
-            const meta = platformMeta[platform];
+          {(healthData.length > 0 ? healthData : [
+            { source: "GREENHOUSE" }, { source: "ASHBY" }, { source: "LEVER" }, 
+            { source: "WORKDAY" }, { source: "WORKABLE" }, { source: "APPLYTOJOB" },
+            { source: "JOBVITE" }, { source: "ICIMS" }, { source: "JOBRIGHT" }
+          ]).map((sourceItem) => {
+            const platform = sourceItem.source;
+            const item = healthData.find((h) => h.source === platform) || sourceItem;
+            const meta = platformMeta[platform] || { color: "var(--text-primary)", gradient: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))" };
             const activeJobs = item?.active_jobs ?? item?.total_active_jobs ?? 0;
             const hasError = item?.error_message || item?.last_error;
 
