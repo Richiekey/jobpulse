@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
   Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
@@ -377,6 +378,9 @@ export default function JobsDashboard() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [fullJobData, setFullJobData] = useState<Job | null>(null);
 
+  // Auth context for Google Sheets sync & user tracking
+  const { user, syncAppliedJobToSheet } = useAuth();
+
   // Tracking sets
   const [appliedSet, setAppliedSet] = useState<Set<string>>(new Set());
   const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
@@ -393,12 +397,31 @@ export default function JobsDashboard() {
   }, []);
 
   const toggleApplied = (id: string) => {
+    const isNowApplied = !appliedSet.has(id);
+
     setAppliedSet((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       saveStoredSet("jp_applied", next);
       return next;
     });
+
+    // If marked as applied and user is logged in, auto-sync to Google Sheet & cloud applications
+    if (isNowApplied && syncAppliedJobToSheet) {
+      const targetJob = jobs.find((j) => j.id === id) || (fullJobData?.id === id ? fullJobData : selectedJob);
+      if (targetJob) {
+        syncAppliedJobToSheet({
+          id: targetJob.id,
+          company_name: targetJob.company_name,
+          title: targetJob.title,
+          location: targetJob.location,
+          job_url: targetJob.job_url,
+          apply_url: targetJob.apply_url,
+          salary: targetJob.salary_min ? `${targetJob.salary_min}-${targetJob.salary_max} ${targetJob.salary_currency || "USD"}` : "",
+          source: targetJob.source,
+        });
+      }
+    }
   };
 
   const toggleHidden = (id: string) => {
