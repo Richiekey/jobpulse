@@ -288,8 +288,41 @@ function JobModal({
           </div>
         )}
 
+        {/* Links Box (Company Apply + Jobright Listing) */}
+        <div style={{ margin: "16px 28px 0", padding: "14px 18px", borderRadius: 12, background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
+              Original Apply (Company / ATS)
+            </div>
+            <a
+              href={job.apply_url || job.job_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 13, color: "var(--accent-glow)", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
+              {job.apply_url || job.job_url} <ExternalLink size={12} />
+            </a>
+          </div>
+
+          {job.source === "JOBRIGHT" && job.job_url && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
+                Jobright Listing
+              </div>
+              <a
+                href={job.job_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 13, color: "#60a5fa", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                {job.job_url} <ExternalLink size={12} />
+              </a>
+            </div>
+          )}
+        </div>
+
         {/* Divider */}
-        <div style={{ height: 1, background: "var(--border-subtle)", margin: "0 28px" }} />
+        <div style={{ height: 1, background: "var(--border-subtle)", margin: "16px 28px 0" }} />
 
         {/* Description */}
         <div style={{ padding: "20px 28px", fontSize: 14, lineHeight: 1.7, color: "var(--text-secondary)" }}>
@@ -314,45 +347,72 @@ function JobModal({
           )}
         </div>
 
-        {/* Actions bar */}
+        {/* Actions bar matching Screenshot 2 */}
         <div style={{
           padding: "16px 28px", borderTop: "1px solid var(--border-subtle)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10,
           position: "sticky", bottom: 0, background: "var(--bg-card)",
           borderRadius: "0 0 20px 20px",
         }}>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <a
+              href={job.apply_url || job.job_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+              style={{ padding: "8px 18px", fontSize: 13, background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
+            >
+              Apply on company site <ExternalLink size={13} />
+            </a>
+
+            {job.source === "JOBRIGHT" && job.job_url && (
+              <a
+                href={job.job_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary"
+                style={{ padding: "8px 14px", fontSize: 13, color: "#60a5fa", borderColor: "rgba(96,165,250,0.3)" }}
+              >
+                Jobright <ExternalLink size={12} />
+              </a>
+            )}
+
             <button
               className={isApplied ? "btn-primary" : "btn-secondary"}
               onClick={() => onToggleApplied(job.id)}
-              style={{ padding: "8px 16px" }}
+              style={{
+                padding: "8px 14px",
+                fontSize: 13,
+                background: isApplied ? "rgba(52,211,153,0.15)" : undefined,
+                color: isApplied ? "var(--success)" : undefined,
+                borderColor: isApplied ? "rgba(52,211,153,0.4)" : undefined,
+              }}
             >
               <CheckCircle2 size={15} /> {isApplied ? "Applied ✓" : "Mark Applied"}
             </button>
+
             <button
               className="btn-secondary"
               onClick={() => onToggleHidden(job.id)}
-              style={{ padding: "8px 16px", color: isHidden ? "var(--danger)" : undefined }}
+              style={{
+                padding: "8px 14px",
+                fontSize: 13,
+                color: isHidden ? "var(--danger)" : "var(--text-muted)",
+                borderColor: isHidden ? "rgba(248,113,113,0.4)" : undefined,
+              }}
             >
-              <ThumbsDown size={15} /> {isHidden ? "Hidden" : "Not Suitable"}
+              <ThumbsDown size={14} /> {isHidden ? "Hidden" : "Not suitable"}
             </button>
+
             <button
               className="btn-secondary"
               onClick={() => onToggleSaved(job.id)}
-              style={{ padding: "8px 16px", color: isSaved ? "var(--warning)" : undefined }}
+              style={{ padding: "8px 12px", color: isSaved ? "var(--warning)" : "var(--text-muted)" }}
+              title={isSaved ? "Saved" : "Save for later"}
             >
               {isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
-              {isSaved ? "Saved" : "Save"}
             </button>
           </div>
-          <a
-            href={job.apply_url || job.job_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary"
-          >
-            Apply Now <ExternalLink size={14} />
-          </a>
         </div>
       </div>
     </div>

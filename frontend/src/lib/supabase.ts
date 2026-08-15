@@ -25,7 +25,7 @@ export async function supabaseFetch(
       'Content-Type': 'application/json',
       ...extraHeaders,
     },
-    next: { revalidate: 30 },
+    cache: 'no-store',
   });
 
   return res;
