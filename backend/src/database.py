@@ -274,6 +274,7 @@ class Database:
             params = {
                 "select": "id,source_job_id",
                 "source": f"eq.{source}",
+                "source_company_id": f"eq.{company_identifier}",
                 "status": "eq.ACTIVE",
                 "source_job_id": f"not.in.({','.join(active_source_job_ids[:500])})",
                 "limit": "500",
@@ -293,7 +294,7 @@ class Database:
                     params={"id": f"eq.{job_id}"},
                     json={"status": "STALE"},
                 )
-            logger.info("marked_jobs_stale", count=len(stale_ids))
+            logger.info("marked_jobs_stale", company=company_identifier, count=len(stale_ids))
         except Exception as e:
             logger.error("mark_stale_jobs_failed", error=str(e))
 
