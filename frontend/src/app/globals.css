@@ -64,50 +64,71 @@ body {
 }
 
 .job-card {
-  animation: cardEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 240px;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  animation: cardEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, border-color 0.15s ease;
+  will-change: transform;
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out both;
+  animation: fadeInUp 0.3s ease-out both;
+  transform: translate3d(0, 0, 0);
 }
 .animate-slide-in {
-  animation: slide-in 0.3s ease-out both;
+  animation: slide-in 0.25s ease-out both;
 }
 
 /* stagger children */
 .stagger-children > * {
-  animation: fadeInUp 0.35s ease-out both;
+  animation: fadeInUp 0.25s ease-out both;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 30ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 90ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 150ms; }
 
 /* ── Skeleton loader ───────────────── */
 .skeleton {
   background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(255,255,255,0.04) 50%, var(--bg-elevated) 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.2s infinite;
   border-radius: 8px;
+  will-change: background-position;
 }
 
 /* ── Glassmorphism card ────────────── */
 .glass-card {
-  background: rgba(18, 18, 26, 0.7);
-  backdrop-filter: blur(16px);
+  background: rgba(18, 18, 26, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .glass-card:hover {
   border-color: var(--border-medium);
-  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 24px -6px rgba(0, 0, 0, 0.4);
   transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Touch Optimization ────────────── */
+button, a, input, select, textarea {
+  touch-action: manipulation;
 }
 
 /* ── Buttons ───────────────────────── */

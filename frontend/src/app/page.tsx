@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
@@ -419,6 +419,9 @@ function JobModal({
   );
 }
 
+// ── Global in-memory query cache for instant (0ms) pagination & filter returns
+const jobsMemoryCache = new Map<string, { items: Job[]; total: number; timestamp: number }>();
+
 // ── Main Dashboard ─────────────────────────────────────────────
 export default function JobsDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -433,6 +436,9 @@ export default function JobsDashboard() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+
+  // In-flight request controller
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Job modal
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -513,8 +519,32 @@ export default function JobsDashboard() {
   const PAGE_SIZE = 12;
 
   const fetchJobs = useCallback(async (p = page) => {
-    setLoading(true);
-    setError(null);
+    // Abort previous in-flight request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const cacheKey = `${p}_${query}_${locationFilter}_${remoteType}_${source}_${roleCategory}_${[...selectedSkills].sort().join(",")}`;
+    const cached = jobsMemoryCache.get(cacheKey);
+    const isCacheValid = cached && (Date.now() - cached.timestamp < 60000); // 60s cache
+
+    // If valid in cache, render immediately (0ms latency)
+    if (cached) {
+      setJobs(cached.items);
+      setTotal(cached.total);
+      setTotalPages(Math.ceil((cached.total || 0) / PAGE_SIZE));
+      setLoading(false);
+      setError(null);
+      if (isCacheValid) {
+        return; // Cache is fresh, skip network
+      }
+    } else {
+      setLoading(true);
+      setError(null);
+    }
+
     try {
       const params = new URLSearchParams();
       params.set("page", String(p));
@@ -526,24 +556,29 @@ export default function JobsDashboard() {
       if (roleCategory) params.set("role_category", roleCategory);
       if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, { signal: controller.signal });
       clearTimeout(timeoutId);
+
       if (res.ok) {
         const data = await res.json();
-        setJobs(data.items || []);
-        setTotal(data.total || 0);
-        setTotalPages(Math.ceil((data.total || 0) / PAGE_SIZE));
+        const items = data.items || [];
+        const tot = data.total || 0;
+
+        jobsMemoryCache.set(cacheKey, { items, total: tot, timestamp: Date.now() });
+
+        setJobs(items);
+        setTotal(tot);
+        setTotalPages(Math.ceil(tot / PAGE_SIZE));
       } else {
-        setError(`Server error (${res.status})`);
+        if (!cached) setError(`Server error (${res.status})`);
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') {
-        setError('Request timed out — try again');
-      } else {
-        setError('Failed to connect to API');
+        // Request was cancelled by a newer request or timeout, ignore
+        return;
       }
+      if (!cached) setError('Failed to connect to API');
     } finally {
       setLoading(false);
     }
