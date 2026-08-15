@@ -33,5 +33,6 @@ class ATSPlatform(str, Enum):
     ICIMS = "ICIMS"
     JOBDIVA = "JOBDIVA"
     WORKDAY = "WORKDAY"
+    JOBRIGHT = "JOBRIGHT"
     UNKNOWN = "UNKNOWN"
 

@@ -109,6 +109,7 @@ function sourceBadgeClass(source: string) {
   if (s === "applytojob") return "badge badge-applytojob";
   if (s === "jobvite") return "badge badge-jobvite";
   if (s === "icims") return "badge badge-icims";
+  if (s === "jobright") return "badge badge-jobright";
   return "badge";
 }
 
@@ -561,6 +562,7 @@ export default function JobsDashboard() {
           <option value="APPLYTOJOB">ApplyToJob</option>
           <option value="JOBVITE">Jobvite</option>
           <option value="ICIMS">iCIMS</option>
+          <option value="JOBRIGHT">Jobright</option>
         </select>
         <button className="btn-primary" onClick={handleSearch} style={{ flexShrink: 0 }}>
           <Search size={15} />

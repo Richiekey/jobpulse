@@ -8,6 +8,7 @@ from src.adapters.workable import WorkableAdapter
 from src.adapters.applytojob import ApplyToJobAdapter
 from src.adapters.jobvite import JobviteAdapter
 from src.adapters.icims import ICIMSAdapter
+from src.adapters.jobright import JobrightAdapter
 from src.models.enums import ATSPlatform
 from src.utils.http_client import ThrottledClient
 
@@ -20,6 +21,7 @@ ADAPTER_MAP: Dict[ATSPlatform, Type[BaseAdapter]] = {
     ATSPlatform.APPLYTOJOB: ApplyToJobAdapter,
     ATSPlatform.JOBVITE: JobviteAdapter,
     ATSPlatform.ICIMS: ICIMSAdapter,
+    ATSPlatform.JOBRIGHT: JobrightAdapter,
 }
 
 def get_adapter(platform: ATSPlatform, http_client: ThrottledClient = None) -> BaseAdapter:

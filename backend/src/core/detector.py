@@ -16,6 +16,7 @@ DETECTION_PATTERNS = [
     (ATSPlatform.BAMBOOHR, re.compile(r"([\w-]+)\.bamboohr\.com")),
     (ATSPlatform.ICIMS, re.compile(r"([\w-]+)\.icims\.com")),
     (ATSPlatform.WORKDAY, re.compile(r"([\w-]+)\.workdayjobs\.com")),
+    (ATSPlatform.JOBRIGHT, re.compile(r"jobright\.ai/jobs/info/([a-zA-Z0-9]+)")),
 ]
 
 def detect_ats(url: str) -> Tuple[ATSPlatform, Optional[str]]:
@@ -55,6 +56,10 @@ def extract_job_id_from_url(url: str, platform: ATSPlatform) -> Optional[str]:
 
     elif platform == ATSPlatform.LEVER:
         match = re.search(r"jobs\.lever\.co/[\w-]+/([\w-]+)", url, re.IGNORECASE)
+        return match.group(1) if match else None
+
+    elif platform == ATSPlatform.JOBRIGHT:
+        match = re.search(r"jobright\.ai/jobs/info/([a-zA-Z0-9]+)", url, re.IGNORECASE)
         return match.group(1) if match else None
 
     return None

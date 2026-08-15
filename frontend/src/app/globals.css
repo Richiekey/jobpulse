@@ -208,6 +208,7 @@ body {
 .badge-applytojob { background: rgba(168, 85, 247, 0.1); color: #c084fc; }
 .badge-jobvite { background: rgba(20, 184, 166, 0.1); color: #2dd4bf; }
 .badge-icims { background: rgba(249, 115, 22, 0.1); color: #fb923c; }
+.badge-jobright { background: rgba(0, 240, 160, 0.12); color: #00f0a0; }
 
 /* ── Stat cards ────────────────────── */
 .stat-card {

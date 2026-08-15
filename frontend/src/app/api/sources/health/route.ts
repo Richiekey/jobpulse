@@ -4,7 +4,7 @@ import { supabaseFetch } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const KNOWN_SOURCES = ['GREENHOUSE', 'ASHBY', 'LEVER', 'WORKDAY', 'WORKABLE', 'APPLYTOJOB', 'JOBVITE', 'ICIMS'];
+const KNOWN_SOURCES = ['GREENHOUSE', 'ASHBY', 'LEVER', 'WORKDAY', 'WORKABLE', 'APPLYTOJOB', 'JOBVITE', 'ICIMS', 'JOBRIGHT'];
 
 export async function GET() {
   try {
