@@ -288,34 +288,50 @@ function JobModal({
           </div>
         )}
 
-        {/* Links Box (Company Apply + Jobright Listing) */}
-        <div style={{ margin: "16px 28px 0", padding: "14px 18px", borderRadius: 12, background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
-              Original Apply (Company / ATS)
-            </div>
-            <a
-              href={job.apply_url || job.job_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: 13, color: "var(--accent-glow)", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
-            >
-              {job.apply_url || job.job_url} <ExternalLink size={12} />
-            </a>
-          </div>
+        {/* Links Box */}
+        <div style={{ margin: "16px 28px 0", padding: "14px 18px", borderRadius: 12, background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: 12 }}>
+          {job.source === "JOBRIGHT" ? (
+            <>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
+                  Jobright Listing (Apply via Jobright)
+                </div>
+                <a
+                  href={job.job_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 13, color: "#60a5fa", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
+                >
+                  {job.job_url} <ExternalLink size={12} />
+                </a>
+              </div>
 
-          {job.source === "JOBRIGHT" && job.job_url && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
+                  Direct Company Career Search
+                </div>
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(`${job.company_name} ${job.title} jobs careers apply`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 13, color: "var(--accent-glow)", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
+                >
+                  Search {job.company_name} careers directly on Google <ExternalLink size={12} />
+                </a>
+              </div>
+            </>
+          ) : (
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
-                Jobright Listing
+                Original Apply (Company / ATS)
               </div>
               <a
-                href={job.job_url}
+                href={job.apply_url || job.job_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: 13, color: "#60a5fa", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
+                style={{ fontSize: 13, color: "var(--accent-glow)", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
               >
-                {job.job_url} <ExternalLink size={12} />
+                {job.apply_url || job.job_url} <ExternalLink size={12} />
               </a>
             </div>
           )}
@@ -355,25 +371,36 @@ function JobModal({
           borderRadius: "0 0 20px 20px",
         }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <a
-              href={job.apply_url || job.job_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary"
-              style={{ padding: "8px 18px", fontSize: 13, background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
-            >
-              Apply on company site <ExternalLink size={13} />
-            </a>
-
-            {job.source === "JOBRIGHT" && job.job_url && (
+            {job.source === "JOBRIGHT" ? (
+              <>
+                <a
+                  href={job.job_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                  style={{ padding: "8px 18px", fontSize: 13, background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
+                >
+                  Apply via Jobright <ExternalLink size={13} />
+                </a>
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(`${job.company_name} ${job.title} jobs careers apply`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                  style={{ padding: "8px 14px", fontSize: 13, color: "var(--accent-glow)" }}
+                >
+                  Company Careers <ExternalLink size={12} />
+                </a>
+              </>
+            ) : (
               <a
-                href={job.job_url}
+                href={job.apply_url || job.job_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-secondary"
-                style={{ padding: "8px 14px", fontSize: 13, color: "#60a5fa", borderColor: "rgba(96,165,250,0.3)" }}
+                className="btn-primary"
+                style={{ padding: "8px 18px", fontSize: 13, background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
               >
-                Jobright <ExternalLink size={12} />
+                Apply on company site <ExternalLink size={13} />
               </a>
             )}
 
