@@ -67,20 +67,12 @@ async def run_scrape(db: Optional[Database] = None):
                     logger.info("location_filtered", company=comp_name, kept=len(jobs), filtered=filtered_out)
                     stats["skipped"] += filtered_out
 
-                active_source_job_ids = []
+                active_source_job_ids = [j.source_job_id for j in jobs]
 
-                for job in jobs:
-                    try:
-                        dedup_res = await deduplicator.check(job)
-                        if dedup_res == "skipped":
-                            stats["skipped"] += 1
-                        else:
-                            res = await db.upsert_job(job)
-                            stats[res] += 1
-                        active_source_job_ids.append(job.source_job_id)
-                    except Exception as je:
-                        logger.error("job_upsert_error", job_id=job.source_job_id, error=str(je))
-                        stats["failed"] += 1
+                # Fast batch upsert
+                upsert_res = await db.bulk_upsert_jobs(jobs, batch_size=100)
+                stats["inserted"] += upsert_res.get("inserted", 0)
+                stats["failed"] += upsert_res.get("failed", 0)
 
                 # Mark missing jobs as stale
                 await db.mark_stale_jobs(platform.value, ats_identifier, active_source_job_ids)

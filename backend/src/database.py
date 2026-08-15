@@ -146,6 +146,67 @@ class Database:
             logger.error("insert_job_failed", status=resp.status_code, body=resp.text[:200])
             return "inserted"
 
+    async def bulk_upsert_jobs(self, jobs: List[NormalizedJob], batch_size: int = 100) -> Dict[str, int]:
+        """Bulk upserts jobs into Supabase in batches with resolution=merge-duplicates."""
+        if not jobs or not self.connected:
+            return {"inserted": 0, "failed": 0}
+
+        stats = {"inserted": 0, "failed": 0}
+
+        for i in range(0, len(jobs), batch_size):
+            batch = jobs[i:i + batch_size]
+            payload = []
+            for job in batch:
+                payload.append({
+                    "source": job.source.value,
+                    "source_job_id": job.source_job_id,
+                    "source_company_id": job.source_company_id,
+                    "title": job.title,
+                    "company_name": job.company_name,
+                    "company_url": job.company_url,
+                    "location": job.location,
+                    "country": job.country,
+                    "city": job.city,
+                    "remote_type": job.remote_type.value,
+                    "employment_type": job.employment_type.value if job.employment_type else None,
+                    "department": job.department,
+                    "team": job.team,
+                    "description": job.description,
+                    "requirements": job.requirements,
+                    "responsibilities": job.responsibilities,
+                    "salary_min": float(job.salary_min) if job.salary_min else None,
+                    "salary_max": float(job.salary_max) if job.salary_max else None,
+                    "salary_currency": job.salary_currency,
+                    "salary_period": job.salary_period,
+                    "job_url": job.job_url,
+                    "apply_url": job.apply_url,
+                    "posted_at": job.posted_at.isoformat() if job.posted_at else None,
+                    "updated_at": (job.updated_at or datetime.now(timezone.utc)).isoformat(),
+                    "scraped_at": job.scraped_at.isoformat() if job.scraped_at else datetime.now(timezone.utc).isoformat(),
+                    "status": job.status.value,
+                    "content_hash": job.content_hash,
+                    "deduplication_key": job.deduplication_key,
+                    "skills": extract_skills(job.description or ""),
+                    "role_category": detect_role_category(job.title or ""),
+                })
+
+            resp = await self.client.post(
+                f"{self.rest_url}/jobs?on_conflict=source,source_job_id",
+                headers={"Prefer": "resolution=merge-duplicates"},
+                json=payload,
+            )
+            if resp.status_code < 300:
+                stats["inserted"] += len(batch)
+            else:
+                logger.error("bulk_upsert_failed", status=resp.status_code, body=resp.text[:200])
+                # Fallback to individual
+                for j in batch:
+                    r = await self.upsert_job(j)
+                    if r != "skipped":
+                        stats["inserted"] += 1
+
+        return stats
+
     async def search_jobs(self, params: JobSearchParams) -> Tuple[List[Dict[str, Any]], int]:
         if not self.connected:
             return [], 0
