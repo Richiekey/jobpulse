@@ -6,6 +6,34 @@ export const revalidate = 0;
 
 const SELECT_FIELDS = 'id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category';
 
+function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T[] {
+  if (!items || items.length <= 1) return items;
+
+  // Group items by company_name
+  const companyBuckets = new Map<string, T[]>();
+  for (const item of items) {
+    const key = (item.company_name || 'Unknown').trim().toLowerCase();
+    if (!companyBuckets.has(key)) {
+      companyBuckets.set(key, []);
+    }
+    companyBuckets.get(key)!.push(item);
+  }
+
+  // Interleave round-robin so jobs from the same company are distributed evenly
+  const result: T[] = [];
+  let remaining = items.length;
+  while (remaining > 0) {
+    for (const [_, queue] of companyBuckets.entries()) {
+      if (queue.length > 0) {
+        result.push(queue.shift()!);
+        remaining--;
+      }
+    }
+  }
+
+  return result;
+}
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const page = parseInt(sp.get('page') || '1', 10);
@@ -27,11 +55,11 @@ export async function GET(req: NextRequest) {
   // Sorting
   const sortBy = sp.get('sort_by') || 'newest';
   if (sortBy === 'oldest') {
-    params.order = 'posted_at.asc.nullslast,created_at.asc';
+    params.order = 'posted_at.asc,created_at.asc';
   } else if (sortBy === 'salary') {
     params.order = 'salary_max.desc.nullslast,salary_min.desc.nullslast';
   } else {
-    params.order = 'posted_at.desc.nullslast,created_at.desc';
+    params.order = 'posted_at.desc,created_at.desc';
   }
 
   // Search query (Keyword / Company / Title)
@@ -107,6 +135,7 @@ export async function GET(req: NextRequest) {
     }
 
     const results = await res.json();
+    const diverseResults = interleaveCompanies(results);
 
     // Parse total from Content-Range header
     let total = 0;
@@ -122,7 +151,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      items: results,
+      items: diverseResults,
       total,
       page,
       per_page: perPage,

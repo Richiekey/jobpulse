@@ -605,6 +605,28 @@ export default function JobsDashboard() {
     }
   };
 
+  // Company interleaver helper to prevent consecutive duplicates
+  function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T[] {
+    if (!items || items.length <= 1) return items;
+    const map = new Map<string, T[]>();
+    for (const item of items) {
+      const key = (item.company_name || "Unknown").trim().toLowerCase();
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(item);
+    }
+    const result: T[] = [];
+    let remaining = items.length;
+    while (remaining > 0) {
+      for (const [_, queue] of map.entries()) {
+        if (queue.length > 0) {
+          result.push(queue.shift()!);
+          remaining--;
+        }
+      }
+    }
+    return result;
+  }
+
   // Filter out applied/hidden jobs
   const visibleJobs = jobs.filter((job) => {
     if (!showApplied && appliedSet.has(job.id)) return false;
@@ -612,8 +634,8 @@ export default function JobsDashboard() {
     return true;
   });
 
-  // Display exactly PAGE_SIZE jobs on the current view
-  const displayedJobs = visibleJobs.slice(0, PAGE_SIZE);
+  // Display exactly PAGE_SIZE jobs on the current view with company interleaving
+  const displayedJobs = interleaveCompanies(visibleJobs).slice(0, PAGE_SIZE);
 
   // Background auto-replenish: when visible jobs drop below buffer threshold, pull the next batch
   useEffect(() => {
