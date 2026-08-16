@@ -50,11 +50,11 @@ export async function GET(req: NextRequest) {
     params.location = `ilike.*${location.trim()}*`;
   } else if (country && country !== 'ALL') {
     if (country === 'US') {
-      params.location = `ilike(any).{*US*,*USA*,*United States*,*CA*,*NY*,*WA*,*TX*,*Remote*}`;
+      params.location = `ilike(any).{%United States%,%USA%,%US-Remote%,%San Francisco%,%New York%,%Seattle%,%Austin%,%Boston%,%Los Angeles%,%Chicago%,%San Jose%,%Sunnyvale%,%Mountain View%,%Denver%,%Atlanta%,%Dallas%,%Miami%,%Portland%,%Washington%}`;
     } else if (country === 'CA') {
-      params.location = `ilike(any).{*Canada*,*Toronto*,*Vancouver*,*Montreal*,*Calgary*,*Ottawa*}`;
+      params.location = `ilike(any).{%Canada%,%Toronto%,%Vancouver%,%Montreal%,%Calgary%,%Ottawa%,%Edmonton%,%Ontario%,%Quebec%,%Alberta%}`;
     } else if (country === 'UK') {
-      params.location = `ilike(any).{*United Kingdom*,*London*,*UK*,*England*,*Edinburgh*,*Manchester*}`;
+      params.location = `ilike(any).{%United Kingdom%,%UK%,%London%,%England%,%Edinburgh%,%Manchester%,%Cambridge%,%Bristol%,%Glasgow%,%Oxford%}`;
     }
   }
 
