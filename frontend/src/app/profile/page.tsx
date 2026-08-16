@@ -9,16 +9,76 @@ import {
   HelpCircle, ChevronDown, ChevronUp, Zap, Send
 } from "lucide-react";
 
-const APPS_SCRIPT_TEMPLATE = `function doPost(e) {
+const APPS_SCRIPT_TEMPLATE = `// ── Optional: Paste your Google Drive Resumes Folder ID below (or leave as "" to search your entire Drive)
+var RESUME_FOLDER_ID = ""; // e.g. "1a2b3c4d5e6f7g8h9i0j..." from your Google Drive folder link
+
+function doPost(e) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
     // Add header row automatically if sheet is empty
     if (sheet.getLastRow() === 0) {
-      sheet.appendRow(["Date Applied", "Company", "Job Title", "Location", "Salary", "Source", "Job URL", "Status"]);
-      sheet.getRange(1, 1, 1, 8).setFontWeight("bold").setBackground("#eef2ff");
+      sheet.appendRow([
+        "Date Applied",
+        "Company",
+        "Job Title",
+        "Location",
+        "Salary",
+        "Source",
+        "Job URL",
+        "Tailored Resume (Google Drive)",
+        "Cover Letter (Google Drive)",
+        "Status"
+      ]);
+      sheet.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#eef2ff");
       sheet.setFrozenRows(1);
     }
+    
     var data = JSON.parse(e.postData.contents);
+    var companyName = data.company || "";
+    
+    // ── Search Google Drive for matching Tailored Resume / Cover Letter PDF ──
+    var resumeLink = "";
+    var coverLetterLink = "";
+    
+    try {
+      var folder = null;
+      if (RESUME_FOLDER_ID && RESUME_FOLDER_ID.trim() !== "") {
+        folder = DriveApp.getFolderById(RESUME_FOLDER_ID.trim());
+      }
+      
+      // Clean company keyword for fuzzy matching
+      var cleanComp = companyName.replace(/[^a-zA-Z0-9]/g, " ").trim();
+      var firstWord = cleanComp.split(" ")[0] || cleanComp;
+      
+      var searchFiles = folder 
+        ? folder.getFiles() 
+        : (firstWord ? DriveApp.searchFiles("title contains '" + firstWord + "' and mimeType = 'application/pdf'") : null);
+      
+      if (searchFiles) {
+        while (searchFiles.hasNext()) {
+          var file = searchFiles.next();
+          var fileName = file.getName().toLowerCase();
+          var compLower = firstWord.toLowerCase();
+          
+          if (fileName.indexOf(compLower) !== -1 || (folder && !resumeLink)) {
+            if (fileName.indexOf("cover") !== -1 || fileName.indexOf("cl") !== -1) {
+              if (!coverLetterLink) coverLetterLink = file.getUrl();
+            } else {
+              if (!resumeLink) resumeLink = file.getUrl();
+            }
+          }
+        }
+      }
+      
+      // Fallback: If folder is provided and no specific match found, link the folder
+      if (!resumeLink && folder) {
+        resumeLink = folder.getUrl();
+      }
+    } catch (driveErr) {
+      Logger.log("Drive search note: " + driveErr.toString());
+    }
+
     sheet.appendRow([
       data.dateFormatted || new Date().toLocaleString(),
       data.company || "N/A",
@@ -27,9 +87,16 @@ const APPS_SCRIPT_TEMPLATE = `function doPost(e) {
       data.salary || "N/A",
       data.source || "N/A",
       data.link || "N/A",
+      resumeLink || (data.resumeUrl || "N/A"),
+      coverLetterLink || "N/A",
       data.status || "Applied"
     ]);
-    return ContentService.createTextOutput(JSON.stringify({result: "success"})).setMimeType(ContentService.MimeType.JSON);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      result: "success",
+      resumeFound: !!resumeLink,
+      coverLetterFound: !!coverLetterLink
+    })).setMimeType(ContentService.MimeType.JSON);
   } catch(err) {
     return ContentService.createTextOutput(JSON.stringify({result: "error", error: err.toString()})).setMimeType(ContentService.MimeType.JSON);
   }
@@ -326,6 +393,9 @@ export default function ProfilePage() {
                       {copiedScript ? "Copied!" : "Copy Script"}
                     </button>
                   </div>
+                </li>
+                <li>
+                  <em>(Optional Google Drive Auto-Link):</em> If you store tailored resumes in a specific Google Drive folder, copy your Drive Folder ID from its URL and paste it into line 2 (<code>var RESUME_FOLDER_ID = "...";</code>). The script will automatically search that folder for the matching company PDF and add its direct link to your Sheet!
                 </li>
                 <li>
                   Click <strong>Deploy &gt; New deployment</strong>, select <strong>Web app</strong>, set <em>Who has access</em> to <strong>Anyone</strong>, click <strong>Deploy</strong>, and copy the Web app URL into the field below!
