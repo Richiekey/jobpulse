@@ -431,7 +431,7 @@ export default function JobsDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [locationState, setLocationState] = useState<LocationFilterState>({
-    country: "US",
+    country: "ALL",
     allLocationsInCountry: true,
     cityOrState: "",
   });
@@ -694,22 +694,41 @@ export default function JobsDashboard() {
       <div
         className="animate-fade-in-up"
         style={{
-          animationDelay: "60ms", background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
-          borderRadius: 14, padding: 14, marginBottom: 16,
-          display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
+          animationDelay: "60ms",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-subtle)",
+          borderRadius: 16,
+          padding: "16px 18px",
+          marginBottom: 16,
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          flexWrap: "wrap",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
         }}
       >
-        <div style={{ position: "relative", flex: "1 1 220px", minWidth: 200 }}>
+        {/* Search Input with Clear Button */}
+        <div style={{ position: "relative", flex: "1 1 240px", minWidth: 220 }}>
           <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
           <input
             type="text"
-            placeholder="Search keywords, companies..."
+            placeholder="Search keywords, job titles, companies..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             className="input-field"
-            style={{ paddingLeft: 40 }}
+            style={{ paddingLeft: 40, paddingRight: query ? 36 : 14 }}
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => { setQuery(""); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white p-1 rounded-md cursor-pointer"
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         {/* Jobright-style Country & Location Popover (Screenshot 1) */}
@@ -725,7 +744,12 @@ export default function JobsDashboard() {
         />
 
         {/* Remote Type */}
-        <select value={remoteType} onChange={(e) => setRemoteType(e.target.value)} className="select-field" style={{ flex: "0 1 125px" }}>
+        <select
+          value={remoteType}
+          onChange={(e) => setRemoteType(e.target.value)}
+          className="select-field cursor-pointer font-medium"
+          style={{ flex: "0 1 130px" }}
+        >
           <option value="">All Types</option>
           <option value="REMOTE">Remote</option>
           <option value="HYBRID">Hybrid</option>
@@ -733,8 +757,13 @@ export default function JobsDashboard() {
         </select>
 
         {/* ATS Source */}
-        <select value={source} onChange={(e) => setSource(e.target.value)} className="select-field" style={{ flex: "0 1 160px" }}>
-          <option value="">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "13k+"})</option>
+        <select
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          className="select-field cursor-pointer font-medium"
+          style={{ flex: "0 1 170px" }}
+        >
+          <option value="">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "13.5k+"})</option>
           <option value="JOBRIGHT">Jobright (9.7k+)</option>
           <option value="GREENHOUSE">Greenhouse (3.3k+)</option>
           <option value="ASHBY">Ashby (440+)</option>
@@ -742,8 +771,159 @@ export default function JobsDashboard() {
           <option value="LEVER">Lever (24)</option>
         </select>
 
-        <button className="btn-primary" onClick={handleSearch} style={{ flexShrink: 0 }}>
-          <Search size={15} /> Search
+        {/* Search Action Button */}
+        <button
+          className="btn-primary flex items-center gap-1.5 font-bold cursor-pointer"
+          onClick={handleSearch}
+          style={{ flexShrink: 0, padding: "10px 18px" }}
+        >
+          <Search size={14} /> Search
+        </button>
+
+        {/* Clear All Filters button if active */}
+        {(query || locationState.cityOrState || locationState.country !== "ALL" || selectedFunctions.length > 0 || remoteType || source || selectedSkills.size > 0) && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setLocationState({ country: "ALL", allLocationsInCountry: true, cityOrState: "" });
+              setSelectedFunctions([]);
+              setRemoteType("");
+              setSource("");
+              setSelectedSkills(new Set());
+            }}
+            className="text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer border"
+            style={{
+              background: "rgba(239, 68, 68, 0.1)",
+              borderColor: "rgba(239, 68, 68, 0.3)",
+              color: "#f87171",
+            }}
+          >
+            Reset Filters
+          </button>
+        )}
+      </div>
+
+      {/* ── Quick Filter Presets Row ─────────────────── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide text-xs animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+        <span className="text-muted text-[11px] font-bold uppercase tracking-wider whitespace-nowrap pl-1" style={{ color: "var(--text-muted)" }}>
+          Quick Filters:
+        </span>
+
+        {/* Remote Preset */}
+        <button
+          type="button"
+          onClick={() => setRemoteType(remoteType === "REMOTE" ? "" : "REMOTE")}
+          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          style={{
+            background: remoteType === "REMOTE" ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: remoteType === "REMOTE" ? "rgba(99, 102, 241, 0.5)" : "var(--border-subtle)",
+            color: remoteType === "REMOTE" ? "var(--accent-glow)" : "var(--text-secondary)",
+          }}
+        >
+          <span>🌐</span> Remote Only
+        </button>
+
+        {/* Full Stack Preset */}
+        <button
+          type="button"
+          onClick={() => {
+            const tag = "Full Stack Engineer";
+            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
+          }}
+          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          style={{
+            background: selectedFunctions.includes("Full Stack Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Full Stack Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
+            color: selectedFunctions.includes("Full Stack Engineer") ? "#00f0a0" : "var(--text-secondary)",
+          }}
+        >
+          <span>💻</span> Full Stack
+        </button>
+
+        {/* Backend Preset */}
+        <button
+          type="button"
+          onClick={() => {
+            const tag = "Backend Engineer";
+            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
+          }}
+          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          style={{
+            background: selectedFunctions.includes("Backend Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Backend Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
+            color: selectedFunctions.includes("Backend Engineer") ? "#00f0a0" : "var(--text-secondary)",
+          }}
+        >
+          <span>⚙️</span> Backend
+        </button>
+
+        {/* Frontend Preset */}
+        <button
+          type="button"
+          onClick={() => {
+            const tag = "Frontend Software Engineer";
+            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
+          }}
+          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          style={{
+            background: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
+            color: selectedFunctions.includes("Frontend Software Engineer") ? "#00f0a0" : "var(--text-secondary)",
+          }}
+        >
+          <span>🎨</span> Frontend
+        </button>
+
+        {/* AI & ML Preset */}
+        <button
+          type="button"
+          onClick={() => {
+            const tag = "Machine Learning Engineer";
+            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
+          }}
+          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          style={{
+            background: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
+            color: selectedFunctions.includes("Machine Learning Engineer") ? "#00f0a0" : "var(--text-secondary)",
+          }}
+        >
+          <span>🤖</span> AI / ML
+        </button>
+
+        {/* Data Analyst Preset */}
+        <button
+          type="button"
+          onClick={() => {
+            const tag = "Data Analyst";
+            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
+          }}
+          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          style={{
+            background: selectedFunctions.includes("Data Analyst") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Data Analyst") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
+            color: selectedFunctions.includes("Data Analyst") ? "#00f0a0" : "var(--text-secondary)",
+          }}
+        >
+          <span>📊</span> Data Analyst
+        </button>
+
+        {/* Security Preset */}
+        <button
+          type="button"
+          onClick={() => {
+            const tag = "Cyber Security Engineer";
+            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
+          }}
+          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          style={{
+            background: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
+            color: selectedFunctions.includes("Cyber Security Engineer") ? "#00f0a0" : "var(--text-secondary)",
+          }}
+        >
+          <span>🛡️</span> Cyber Security
         </button>
       </div>
 

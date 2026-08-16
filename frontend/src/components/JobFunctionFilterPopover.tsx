@@ -5,12 +5,14 @@ import { Briefcase, Search, ChevronDown, X, Check, Sparkles } from "lucide-react
 
 export interface JobFunctionCategory {
   categoryName: string;
+  icon: string;
   subFunctions: string[];
 }
 
 export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
   {
     categoryName: "Software Engineering",
+    icon: "💻",
     subFunctions: [
       "Full Stack Engineer",
       "Backend Engineer",
@@ -27,6 +29,7 @@ export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
   },
   {
     categoryName: "Data & AI / Machine Learning",
+    icon: "🤖",
     subFunctions: [
       "Data Analyst",
       "Data Scientist",
@@ -41,7 +44,8 @@ export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
     ],
   },
   {
-    categoryName: "Cybersecurity & Cloud Infrastructure",
+    categoryName: "Cybersecurity & Cloud",
+    icon: "🛡️",
     subFunctions: [
       "Cyber Security Engineer",
       "Cloud Security Engineer",
@@ -53,6 +57,7 @@ export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
   },
   {
     categoryName: "Product & Design",
+    icon: "🎨",
     subFunctions: [
       "Product Manager",
       "Technical Program Manager",
@@ -63,6 +68,7 @@ export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
   },
   {
     categoryName: "Business & Operations",
+    icon: "📊",
     subFunctions: [
       "Account Executive",
       "Sales Development Rep",
@@ -150,64 +156,68 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
     return `${selectedFunctions[0]} (+${selectedFunctions.length - 1})`;
   };
 
+  const isFiltered = selectedFunctions.length > 0;
+
   return (
     <div className="relative inline-block text-left" ref={popoverRef}>
       {/* Trigger Button Pill */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all select-none cursor-pointer"
+        className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all select-none cursor-pointer border"
         style={{
-          background: selectedFunctions.length > 0 ? "rgba(0, 240, 160, 0.12)" : "var(--bg-input)",
-          border: `1px solid ${selectedFunctions.length > 0 ? "rgba(0, 240, 160, 0.4)" : "var(--border-subtle)"}`,
-          color: selectedFunctions.length > 0 ? "#00f0a0" : "var(--text-secondary)",
+          background: isFiltered ? "rgba(0, 240, 160, 0.12)" : "rgba(255, 255, 255, 0.04)",
+          borderColor: isFiltered ? "rgba(0, 240, 160, 0.4)" : "rgba(255, 255, 255, 0.08)",
+          color: isFiltered ? "#00f0a0" : "var(--text-secondary)",
         }}
       >
-        <Briefcase size={13} style={{ color: selectedFunctions.length > 0 ? "#00f0a0" : "var(--text-muted)" }} />
+        <Briefcase size={14} style={{ color: isFiltered ? "#00f0a0" : "var(--text-muted)" }} />
         <span>{getTriggerLabel()}</span>
-        <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-muted)" }} />
       </button>
 
       {/* Popover Card Matching Jobright Screenshot 2 */}
       {open && (
         <div
-          className="absolute z-50 mt-2 w-[340px] sm:w-[460px] max-h-[560px] overflow-hidden flex flex-col rounded-2xl shadow-2xl p-5 animate-fade-in-up"
+          className="absolute left-0 sm:left-auto z-50 mt-2 w-[340px] sm:w-[480px] max-h-[580px] overflow-hidden flex flex-col rounded-2xl shadow-2xl p-5 animate-fade-in-up border"
           style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-medium)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+            background: "#12141a",
+            borderColor: "rgba(255, 255, 255, 0.12)",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.8)",
           }}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
               <span style={{ color: "#00f0a0" }}>*</span> Job Function
             </span>
-            {tempSelected.length > 0 && (
-              <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
+            {tempSelected.length > 0 ? (
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(0, 240, 160, 0.15)", color: "#00f0a0" }}>
                 {tempSelected.length} selected
               </span>
+            ) : (
+              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Select one or multiple</span>
             )}
           </div>
 
           {/* Selected Pills Container with Mint Background matching Screenshot 2 */}
           {tempSelected.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl mb-3 max-h-32 overflow-y-auto" style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-subtle)" }}>
+            <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl mb-3 max-h-28 overflow-y-auto" style={{ background: "rgba(0, 240, 160, 0.04)", border: "1px solid rgba(0, 240, 160, 0.15)" }}>
               {tempSelected.map((fn) => (
                 <span
                   key={fn}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
                   style={{
-                    background: "rgba(0, 240, 160, 0.15)",
+                    background: "rgba(0, 240, 160, 0.18)",
                     color: "#00f0a0",
-                    border: "1px solid rgba(0, 240, 160, 0.35)",
+                    border: "1px solid rgba(0, 240, 160, 0.4)",
                   }}
                 >
                   {fn}
                   <button
                     type="button"
                     onClick={(e) => removeFunction(fn, e)}
-                    className="hover:opacity-80 p-0.5 rounded cursor-pointer"
+                    className="hover:opacity-80 p-0.5 rounded cursor-pointer transition-transform active:scale-90"
                   >
                     <X size={12} />
                   </button>
@@ -217,14 +227,15 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
           )}
 
           {/* Category Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 scrollbar-hide text-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2 scrollbar-hide text-xs">
             <button
               type="button"
               onClick={() => setActiveTab("All")}
-              className="px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors"
+              className="px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer"
               style={{
-                background: activeTab === "All" ? "rgba(255,255,255,0.1)" : "transparent",
+                background: activeTab === "All" ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.02)",
                 color: activeTab === "All" ? "white" : "var(--text-muted)",
+                border: `1px solid ${activeTab === "All" ? "rgba(255,255,255,0.2)" : "transparent"}`,
               }}
             >
               All
@@ -234,13 +245,15 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
                 key={g.categoryName}
                 type="button"
                 onClick={() => setActiveTab(g.categoryName)}
-                className="px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors"
+                className="px-2.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5"
                 style={{
-                  background: activeTab === g.categoryName ? "rgba(255,255,255,0.1)" : "transparent",
+                  background: activeTab === g.categoryName ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.02)",
                   color: activeTab === g.categoryName ? "white" : "var(--text-muted)",
+                  border: `1px solid ${activeTab === g.categoryName ? "rgba(255,255,255,0.2)" : "transparent"}`,
                 }}
               >
-                {g.categoryName.split(" ")[0]}
+                <span>{g.icon}</span>
+                <span>{g.categoryName.split(" ")[0]}</span>
               </button>
             ))}
           </div>
@@ -249,8 +262,9 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
           <div className="flex-1 overflow-y-auto pr-1 space-y-4 max-h-56 mb-3">
             {filteredGroups.map((group) => (
               <div key={group.categoryName}>
-                <div className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>
-                  {group.categoryName}
+                <div className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: "var(--text-muted)" }}>
+                  <span>{group.icon}</span>
+                  <span>{group.categoryName}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {group.subFunctions.map((fn) => {
@@ -260,15 +274,15 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
                         key={fn}
                         type="button"
                         onClick={() => toggleFunction(fn)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer select-none"
                         style={{
-                          background: isSelected ? "rgba(0, 240, 160, 0.15)" : "rgba(255,255,255,0.04)",
+                          background: isSelected ? "rgba(0, 240, 160, 0.18)" : "rgba(255,255,255,0.04)",
                           color: isSelected ? "#00f0a0" : "var(--text-secondary)",
-                          border: `1px solid ${isSelected ? "rgba(0, 240, 160, 0.35)" : "var(--border-subtle)"}`,
+                          border: `1px solid ${isSelected ? "rgba(0, 240, 160, 0.45)" : "rgba(255,255,255,0.06)"}`,
                         }}
                       >
                         {fn}
-                        {isSelected && <Check size={11} />}
+                        {isSelected ? <Check size={12} className="text-emerald-400" /> : null}
                       </button>
                     );
                   })}
@@ -279,7 +293,7 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
 
           {/* Search / Custom input at bottom matching Jobright */}
           <div className="relative mb-3">
-            <Search size={13} className="absolute left-3 top-3 text-muted pointer-events-none" style={{ color: "var(--text-muted)" }} />
+            <Search size={14} className="absolute left-3 top-3 text-muted pointer-events-none" style={{ color: "var(--text-muted)" }} />
             <input
               type="text"
               placeholder="Search or enter expected job function..."
@@ -290,11 +304,11 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/5">
+          <div className="flex items-center justify-between pt-3.5 border-t border-white/10">
             <button
               type="button"
               onClick={handleClear}
-              className="text-xs font-semibold transition-colors hover:text-white cursor-pointer"
+              className="text-xs font-semibold transition-colors hover:text-white cursor-pointer px-2 py-1"
               style={{ color: "var(--text-muted)" }}
             >
               Clear All
@@ -303,7 +317,7 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
             <button
               type="button"
               onClick={handleConfirm}
-              className="btn-primary text-xs py-1.5 px-4 rounded-xl cursor-pointer"
+              className="btn-primary text-xs py-2 px-5 rounded-xl cursor-pointer shadow-lg font-bold"
               style={{
                 background: "linear-gradient(135deg, #059669, #10b981)",
               }}

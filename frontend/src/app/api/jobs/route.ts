@@ -32,22 +32,25 @@ export async function GET(req: NextRequest) {
     params.order = 'posted_at.desc.nullslast,created_at.desc';
   }
 
-  // Filters
+  // Search query (Keyword / Company / Title)
   const q = sp.get('q');
-  if (q) params.search_vector = `plfts.english.${q}`;
+  if (q && q.trim()) {
+    const term = q.trim();
+    params.or = `(title.ilike.*${term}*,company_name.ilike.*${term}*,location.ilike.*${term}*)`;
+  }
 
   // Country & Location Filters
   const country = sp.get('country');
   const location = sp.get('location');
-  if (location) {
-    params.location = `ilike.*${location}*`;
+  if (location && location.trim()) {
+    params.location = `ilike.*${location.trim()}*`;
   } else if (country && country !== 'ALL') {
     if (country === 'US') {
-      params.or = `(location.ilike.*US*,location.ilike.*United States*,location.ilike.*Remote*,country.eq.US)`;
+      params.location = `ilike(any).{*US*,*USA*,*United States*,*CA*,*NY*,*WA*,*TX*,*Remote*}`;
     } else if (country === 'CA') {
-      params.or = `(location.ilike.*Canada*,location.ilike.*Toronto*,location.ilike.*Vancouver*,country.eq.CA)`;
+      params.location = `ilike(any).{*Canada*,*Toronto*,*Vancouver*,*Montreal*,*Calgary*,*Ottawa*}`;
     } else if (country === 'UK') {
-      params.or = `(location.ilike.*United Kingdom*,location.ilike.*London*,location.ilike.*UK*,country.eq.GB)`;
+      params.location = `ilike(any).{*United Kingdom*,*London*,*UK*,*England*,*Edinburgh*,*Manchester*}`;
     }
   }
 
