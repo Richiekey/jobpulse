@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
-import { Briefcase, Search, ChevronDown, X, Check, Sparkles } from "lucide-react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { Briefcase, Search, ChevronDown, X, Check, Sparkles, Layers } from "lucide-react";
 
 export interface JobFunctionCategory {
   categoryName: string;
@@ -164,62 +164,70 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all select-none cursor-pointer border"
+        className="h-11 flex items-center gap-2.5 px-4 rounded-xl text-xs font-semibold transition-all duration-200 select-none cursor-pointer border"
         style={{
-          background: isFiltered ? "rgba(0, 240, 160, 0.12)" : "rgba(255, 255, 255, 0.04)",
-          borderColor: isFiltered ? "rgba(0, 240, 160, 0.4)" : "rgba(255, 255, 255, 0.08)",
-          color: isFiltered ? "#00f0a0" : "var(--text-secondary)",
+          background: isFiltered
+            ? "linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(5, 150, 105, 0.08))"
+            : "rgba(255, 255, 255, 0.03)",
+          borderColor: isFiltered ? "rgba(16, 185, 129, 0.45)" : "rgba(255, 255, 255, 0.08)",
+          color: isFiltered ? "#34d399" : "#94a3b8",
+          boxShadow: isFiltered ? "0 0 15px rgba(16, 185, 129, 0.15)" : "none",
         }}
       >
-        <Briefcase size={14} style={{ color: isFiltered ? "#00f0a0" : "var(--text-muted)" }} />
-        <span>{getTriggerLabel()}</span>
-        <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-muted)" }} />
+        <Briefcase size={14} style={{ color: isFiltered ? "#34d399" : "#64748b" }} />
+        <span className="truncate max-w-[150px]">{getTriggerLabel()}</span>
+        <ChevronDown
+          size={13}
+          className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180 text-emerald-400" : "text-slate-500"}`}
+        />
       </button>
 
-      {/* Popover Card Matching Jobright Screenshot 2 */}
+      {/* Popover Card */}
       {open && (
         <div
-          className="absolute left-0 sm:left-auto z-50 mt-2 w-[340px] sm:w-[480px] max-h-[580px] overflow-hidden flex flex-col rounded-2xl shadow-2xl p-5 animate-fade-in-up border"
+          className="absolute left-0 z-50 mt-2.5 w-[340px] sm:w-[480px] max-h-[580px] overflow-hidden flex flex-col rounded-2xl p-5 animate-fade-in-up border"
           style={{
-            background: "#12141a",
+            background: "#141721",
             borderColor: "rgba(255, 255, 255, 0.12)",
-            boxShadow: "0 24px 60px rgba(0,0,0,0.8)",
+            boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06)",
+            backdropFilter: "blur(20px)",
           }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
-              <span style={{ color: "#00f0a0" }}>*</span> Job Function
-            </span>
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-3.5">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <Layers size={13} />
+              </div>
+              <span className="text-xs font-bold text-slate-100 uppercase tracking-wider">
+                Select Job Functions
+              </span>
+            </div>
+
             {tempSelected.length > 0 ? (
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(0, 240, 160, 0.15)", color: "#00f0a0" }}>
-                {tempSelected.length} selected
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                {tempSelected.length} Selected
               </span>
             ) : (
-              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Select one or multiple</span>
+              <span className="text-[11px] text-slate-400">Multi-select enabled</span>
             )}
           </div>
 
-          {/* Selected Pills Container with Mint Background matching Screenshot 2 */}
+          {/* Selected Mint Tags Area */}
           {tempSelected.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl mb-3 max-h-28 overflow-y-auto" style={{ background: "rgba(0, 240, 160, 0.04)", border: "1px solid rgba(0, 240, 160, 0.15)" }}>
+            <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl mb-3 max-h-24 overflow-y-auto bg-emerald-500/[0.04] border border-emerald-500/20">
               {tempSelected.map((fn) => (
                 <span
                   key={fn}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-                  style={{
-                    background: "rgba(0, 240, 160, 0.18)",
-                    color: "#00f0a0",
-                    border: "1px solid rgba(0, 240, 160, 0.4)",
-                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                 >
-                  {fn}
+                  <span>{fn}</span>
                   <button
                     type="button"
                     onClick={(e) => removeFunction(fn, e)}
                     className="hover:opacity-80 p-0.5 rounded cursor-pointer transition-transform active:scale-90"
                   >
-                    <X size={12} />
+                    <X size={11} />
                   </button>
                 </span>
               ))}
@@ -227,18 +235,18 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
           )}
 
           {/* Category Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2 scrollbar-hide text-xs">
+          <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2.5 scrollbar-hide text-xs">
             <button
               type="button"
               onClick={() => setActiveTab("All")}
               className="px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer"
               style={{
-                background: activeTab === "All" ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.02)",
-                color: activeTab === "All" ? "white" : "var(--text-muted)",
+                background: activeTab === "All" ? "rgba(255,255,255,0.12)" : "transparent",
+                color: activeTab === "All" ? "white" : "#94a3b8",
                 border: `1px solid ${activeTab === "All" ? "rgba(255,255,255,0.2)" : "transparent"}`,
               }}
             >
-              All
+              All Roles
             </button>
             {JOB_FUNCTION_GROUPS.map((g) => (
               <button
@@ -247,8 +255,8 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
                 onClick={() => setActiveTab(g.categoryName)}
                 className="px-2.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5"
                 style={{
-                  background: activeTab === g.categoryName ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.02)",
-                  color: activeTab === g.categoryName ? "white" : "var(--text-muted)",
+                  background: activeTab === g.categoryName ? "rgba(255,255,255,0.12)" : "transparent",
+                  color: activeTab === g.categoryName ? "white" : "#94a3b8",
                   border: `1px solid ${activeTab === g.categoryName ? "rgba(255,255,255,0.2)" : "transparent"}`,
                 }}
               >
@@ -259,10 +267,10 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
           </div>
 
           {/* Subcategory Pills Grid */}
-          <div className="flex-1 overflow-y-auto pr-1 space-y-4 max-h-56 mb-3">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 max-h-52 mb-3">
             {filteredGroups.map((group) => (
               <div key={group.categoryName}>
-                <div className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: "var(--text-muted)" }}>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                   <span>{group.icon}</span>
                   <span>{group.categoryName}</span>
                 </div>
@@ -274,15 +282,15 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
                         key={fn}
                         type="button"
                         onClick={() => toggleFunction(fn)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer select-none"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer select-none border"
                         style={{
-                          background: isSelected ? "rgba(0, 240, 160, 0.18)" : "rgba(255,255,255,0.04)",
-                          color: isSelected ? "#00f0a0" : "var(--text-secondary)",
-                          border: `1px solid ${isSelected ? "rgba(0, 240, 160, 0.45)" : "rgba(255,255,255,0.06)"}`,
+                          background: isSelected ? "rgba(16, 185, 129, 0.18)" : "rgba(255,255,255,0.03)",
+                          color: isSelected ? "#34d399" : "#cbd5e1",
+                          borderColor: isSelected ? "rgba(16, 185, 129, 0.45)" : "rgba(255,255,255,0.06)",
                         }}
                       >
-                        {fn}
-                        {isSelected ? <Check size={12} className="text-emerald-400" /> : null}
+                        <span>{fn}</span>
+                        {isSelected && <Check size={12} className="text-emerald-400 shrink-0" />}
                       </button>
                     );
                   })}
@@ -291,25 +299,24 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
             ))}
           </div>
 
-          {/* Search / Custom input at bottom matching Jobright */}
-          <div className="relative mb-3">
-            <Search size={14} className="absolute left-3 top-3 text-muted pointer-events-none" style={{ color: "var(--text-muted)" }} />
+          {/* Search / Custom input at bottom */}
+          <div className="relative mb-3.5">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Search or enter expected job function..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field pl-9 text-xs"
+              className="input-field pl-8.5 text-xs h-9 bg-black/40 border-white/10"
             />
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-3.5 border-t border-white/10">
+          <div className="flex items-center justify-between pt-3 border-t border-white/[0.08]">
             <button
               type="button"
               onClick={handleClear}
-              className="text-xs font-semibold transition-colors hover:text-white cursor-pointer px-2 py-1"
-              style={{ color: "var(--text-muted)" }}
+              className="text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer px-2 py-1"
             >
               Clear All
             </button>
@@ -317,7 +324,7 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
             <button
               type="button"
               onClick={handleConfirm}
-              className="btn-primary text-xs py-2 px-5 rounded-xl cursor-pointer shadow-lg font-bold"
+              className="btn-primary text-xs py-2 px-5 rounded-xl font-bold cursor-pointer shadow-lg"
               style={{
                 background: "linear-gradient(135deg, #059669, #10b981)",
               }}

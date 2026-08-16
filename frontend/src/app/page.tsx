@@ -9,7 +9,7 @@ import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
   Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
   Bookmark, BookmarkCheck, CheckCircle2, ThumbsDown, Eye, EyeOff,
-  Filter, Tag, Sparkles,
+  Filter, Tag, Sparkles, RotateCcw, ChevronDown,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -717,97 +717,123 @@ export default function JobsDashboard() {
         </div>
       </div>
 
-      {/* ── Search & Filter Controls Row Matching Jobright ─────────────────── */}
+      {/* ── Search & Filter Controls Bar (Ultra-Premium Redesign) ─────────────────── */}
       <div
         className="animate-fade-in-up"
         style={{
           animationDelay: "60ms",
-          background: "var(--bg-card)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: 16,
-          padding: "16px 18px",
+          background: "rgba(18, 20, 29, 0.85)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.09)",
+          borderRadius: 20,
+          padding: "12px 14px",
           marginBottom: 16,
           display: "flex",
-          gap: 12,
+          gap: 10,
           alignItems: "center",
           flexWrap: "wrap",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+          boxShadow: "0 20px 40px -15px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)",
         }}
       >
-        {/* Search Input with Clear Button */}
-        <div style={{ position: "relative", flex: "1 1 240px", minWidth: 220 }}>
-          <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+        {/* Search Input */}
+        <div style={{ position: "relative", flex: "1 1 260px", minWidth: 220 }}>
+          <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
           <input
             type="text"
             placeholder="Search keywords, job titles, companies..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="input-field"
-            style={{ paddingLeft: 40, paddingRight: query ? 36 : 14 }}
+            className="input-field h-11 text-xs"
+            style={{
+              paddingLeft: 38,
+              paddingRight: query ? 36 : 14,
+              background: "rgba(255, 255, 255, 0.03)",
+              borderColor: "rgba(255, 255, 255, 0.08)",
+              borderRadius: 12,
+            }}
           />
           {query && (
             <button
               type="button"
               onClick={() => { setQuery(""); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white p-1 rounded-md cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-md cursor-pointer transition-colors"
               title="Clear search"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>
 
-        {/* Jobright-style Country & Location Popover (Screenshot 1) */}
+        {/* Location Filter Popover */}
         <LocationFilterPopover
           value={locationState}
           onChange={(newLoc) => setLocationState(newLoc)}
         />
 
-        {/* Jobright-style Categorized & Subcategorized Job Function Multi-select (Screenshot 2) */}
+        {/* Job Function Multi-select Popover */}
         <JobFunctionFilterPopover
           selectedFunctions={selectedFunctions}
           onChange={(fns) => setSelectedFunctions(fns)}
         />
 
-        {/* Remote Type */}
-        <select
-          value={remoteType}
-          onChange={(e) => setRemoteType(e.target.value)}
-          className="select-field cursor-pointer font-medium"
-          style={{ flex: "0 1 130px" }}
-        >
-          <option value="">All Types</option>
-          <option value="REMOTE">Remote</option>
-          <option value="HYBRID">Hybrid</option>
-          <option value="ONSITE">Onsite</option>
-        </select>
+        {/* Remote Type Select */}
+        <div className="relative">
+          <select
+            value={remoteType}
+            onChange={(e) => setRemoteType(e.target.value)}
+            className="h-11 px-3.5 pr-8 rounded-xl text-xs font-semibold cursor-pointer border transition-colors select-none appearance-none"
+            style={{
+              background: remoteType ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.03)",
+              borderColor: remoteType ? "rgba(99, 102, 241, 0.45)" : "rgba(255, 255, 255, 0.08)",
+              color: remoteType ? "#a5b4fc" : "#94a3b8",
+            }}
+          >
+            <option value="" className="bg-[#141721] text-slate-300">All Remote Types</option>
+            <option value="REMOTE" className="bg-[#141721] text-slate-100">Remote Only</option>
+            <option value="HYBRID" className="bg-[#141721] text-slate-100">Hybrid</option>
+            <option value="ONSITE" className="bg-[#141721] text-slate-100">Onsite Only</option>
+          </select>
+          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+        </div>
 
-        {/* ATS Source */}
-        <select
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-          className="select-field cursor-pointer font-medium"
-          style={{ flex: "0 1 170px" }}
-        >
-          <option value="">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "13.5k+"})</option>
-          <option value="JOBRIGHT">Jobright (9.7k+)</option>
-          <option value="GREENHOUSE">Greenhouse (3.3k+)</option>
-          <option value="ASHBY">Ashby (440+)</option>
-          <option value="WORKDAY">Workday (29)</option>
-          <option value="LEVER">Lever (24)</option>
-        </select>
+        {/* ATS Source Select */}
+        <div className="relative">
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            className="h-11 px-3.5 pr-8 rounded-xl text-xs font-semibold cursor-pointer border transition-colors select-none appearance-none"
+            style={{
+              background: source ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.03)",
+              borderColor: source ? "rgba(99, 102, 241, 0.45)" : "rgba(255, 255, 255, 0.08)",
+              color: source ? "#a5b4fc" : "#94a3b8",
+            }}
+          >
+            <option value="" className="bg-[#141721] text-slate-300">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "13.5k+"})</option>
+            <option value="JOBRIGHT" className="bg-[#141721] text-slate-100">Jobright (9.7k+)</option>
+            <option value="GREENHOUSE" className="bg-[#141721] text-slate-100">Greenhouse (3.3k+)</option>
+            <option value="ASHBY" className="bg-[#141721] text-slate-100">Ashby (440+)</option>
+            <option value="WORKDAY" className="bg-[#141721] text-slate-100">Workday (29)</option>
+            <option value="LEVER" className="bg-[#141721] text-slate-100">Lever (24)</option>
+          </select>
+          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+        </div>
 
-        {/* Search Action Button */}
+        {/* Search Button */}
         <button
-          className="btn-primary flex items-center gap-1.5 font-bold cursor-pointer"
+          type="button"
           onClick={handleSearch}
-          style={{ flexShrink: 0, padding: "10px 18px" }}
+          className="h-11 px-5 rounded-xl text-xs font-bold text-white flex items-center gap-2 cursor-pointer shadow-lg transition-transform active:scale-95"
+          style={{
+            background: "linear-gradient(135deg, #3b82f6, #6366f1)",
+            boxShadow: "0 4px 15px rgba(99, 102, 241, 0.35)",
+          }}
         >
-          <Search size={14} /> Search
+          <Search size={14} />
+          <span>Search</span>
         </button>
 
-        {/* Clear All Filters button if active */}
+        {/* Reset Filters */}
         {(query || locationState.cityOrState || locationState.country !== "ALL" || selectedFunctions.length > 0 || remoteType || source || selectedSkills.size > 0) && (
           <button
             type="button"
@@ -819,21 +845,23 @@ export default function JobsDashboard() {
               setSource("");
               setSelectedSkills(new Set());
             }}
-            className="text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer border"
+            className="h-11 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5"
             style={{
               background: "rgba(239, 68, 68, 0.1)",
               borderColor: "rgba(239, 68, 68, 0.3)",
               color: "#f87171",
             }}
+            title="Clear all active search and filter constraints"
           >
-            Reset Filters
+            <RotateCcw size={12} />
+            <span>Reset</span>
           </button>
         )}
       </div>
 
       {/* ── Quick Filter Presets Row ─────────────────── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide text-xs animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-        <span className="text-muted text-[11px] font-bold uppercase tracking-wider whitespace-nowrap pl-1" style={{ color: "var(--text-muted)" }}>
+      <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-5 scrollbar-hide text-xs animate-fade-in-up" style={{ animationDelay: "90ms" }}>
+        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap pl-1 mr-1">
           Quick Filters:
         </span>
 
@@ -841,11 +869,12 @@ export default function JobsDashboard() {
         <button
           type="button"
           onClick={() => setRemoteType(remoteType === "REMOTE" ? "" : "REMOTE")}
-          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
             background: remoteType === "REMOTE" ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: remoteType === "REMOTE" ? "rgba(99, 102, 241, 0.5)" : "var(--border-subtle)",
-            color: remoteType === "REMOTE" ? "var(--accent-glow)" : "var(--text-secondary)",
+            borderColor: remoteType === "REMOTE" ? "rgba(99, 102, 241, 0.5)" : "rgba(255, 255, 255, 0.06)",
+            color: remoteType === "REMOTE" ? "#a5b4fc" : "#94a3b8",
+            boxShadow: remoteType === "REMOTE" ? "0 0 12px rgba(99, 102, 241, 0.2)" : "none",
           }}
         >
           <span>🌐</span> Remote Only
@@ -858,11 +887,12 @@ export default function JobsDashboard() {
             const tag = "Full Stack Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Full Stack Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Full Stack Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
-            color: selectedFunctions.includes("Full Stack Engineer") ? "#00f0a0" : "var(--text-secondary)",
+            background: selectedFunctions.includes("Full Stack Engineer") ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Full Stack Engineer") ? "rgba(16, 185, 129, 0.5)" : "rgba(255, 255, 255, 0.06)",
+            color: selectedFunctions.includes("Full Stack Engineer") ? "#34d399" : "#94a3b8",
+            boxShadow: selectedFunctions.includes("Full Stack Engineer") ? "0 0 12px rgba(16, 185, 129, 0.2)" : "none",
           }}
         >
           <span>💻</span> Full Stack
@@ -875,11 +905,12 @@ export default function JobsDashboard() {
             const tag = "Backend Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Backend Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Backend Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
-            color: selectedFunctions.includes("Backend Engineer") ? "#00f0a0" : "var(--text-secondary)",
+            background: selectedFunctions.includes("Backend Engineer") ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Backend Engineer") ? "rgba(16, 185, 129, 0.5)" : "rgba(255, 255, 255, 0.06)",
+            color: selectedFunctions.includes("Backend Engineer") ? "#34d399" : "#94a3b8",
+            boxShadow: selectedFunctions.includes("Backend Engineer") ? "0 0 12px rgba(16, 185, 129, 0.2)" : "none",
           }}
         >
           <span>⚙️</span> Backend
@@ -892,11 +923,12 @@ export default function JobsDashboard() {
             const tag = "Frontend Software Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
-            color: selectedFunctions.includes("Frontend Software Engineer") ? "#00f0a0" : "var(--text-secondary)",
+            background: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(56, 189, 248, 0.2)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(56, 189, 248, 0.5)" : "rgba(255, 255, 255, 0.06)",
+            color: selectedFunctions.includes("Frontend Software Engineer") ? "#38bdf8" : "#94a3b8",
+            boxShadow: selectedFunctions.includes("Frontend Software Engineer") ? "0 0 12px rgba(56, 189, 248, 0.2)" : "none",
           }}
         >
           <span>🎨</span> Frontend
@@ -909,11 +941,12 @@ export default function JobsDashboard() {
             const tag = "Machine Learning Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
-            color: selectedFunctions.includes("Machine Learning Engineer") ? "#00f0a0" : "var(--text-secondary)",
+            background: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(168, 85, 247, 0.2)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(168, 85, 247, 0.5)" : "rgba(255, 255, 255, 0.06)",
+            color: selectedFunctions.includes("Machine Learning Engineer") ? "#c084fc" : "#94a3b8",
+            boxShadow: selectedFunctions.includes("Machine Learning Engineer") ? "0 0 12px rgba(168, 85, 247, 0.2)" : "none",
           }}
         >
           <span>🤖</span> AI / ML
@@ -926,11 +959,12 @@ export default function JobsDashboard() {
             const tag = "Data Analyst";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Data Analyst") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Data Analyst") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
-            color: selectedFunctions.includes("Data Analyst") ? "#00f0a0" : "var(--text-secondary)",
+            background: selectedFunctions.includes("Data Analyst") ? "rgba(245, 158, 11, 0.2)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Data Analyst") ? "rgba(245, 158, 11, 0.5)" : "rgba(255, 255, 255, 0.06)",
+            color: selectedFunctions.includes("Data Analyst") ? "#fbbf24" : "#94a3b8",
+            boxShadow: selectedFunctions.includes("Data Analyst") ? "0 0 12px rgba(245, 158, 11, 0.2)" : "none",
           }}
         >
           <span>📊</span> Data Analyst
@@ -943,11 +977,12 @@ export default function JobsDashboard() {
             const tag = "Cyber Security Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1"
+          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(0, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(0, 240, 160, 0.45)" : "var(--border-subtle)",
-            color: selectedFunctions.includes("Cyber Security Engineer") ? "#00f0a0" : "var(--text-secondary)",
+            background: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 255, 255, 0.03)",
+            borderColor: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(239, 68, 68, 0.5)" : "rgba(255, 255, 255, 0.06)",
+            color: selectedFunctions.includes("Cyber Security Engineer") ? "#f87171" : "#94a3b8",
+            boxShadow: selectedFunctions.includes("Cyber Security Engineer") ? "0 0 12px rgba(239, 68, 68, 0.2)" : "none",
           }}
         >
           <span>🛡️</span> Cyber Security
