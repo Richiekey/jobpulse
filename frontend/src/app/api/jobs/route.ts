@@ -17,10 +17,12 @@ export async function GET(req: NextRequest) {
   const params: Record<string, string> = {
     select: SELECT_FIELDS,
     status: 'eq.ACTIVE',
-    or: `(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`,
     limit: String(perPage),
     offset: String(offset),
   };
+
+  // 30-day freshness condition
+  const freshnessCond = `or(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`;
 
   // Sorting
   const sortBy = sp.get('sort_by') || 'newest';
@@ -36,7 +38,9 @@ export async function GET(req: NextRequest) {
   const q = sp.get('q');
   if (q && q.trim()) {
     const term = q.trim();
-    params.or = `(title.ilike.*${term}*,company_name.ilike.*${term}*,location.ilike.*${term}*)`;
+    params.and = `(${freshnessCond},or(title.ilike.*${term}*,company_name.ilike.*${term}*,location.ilike.*${term}*))`;
+  } else {
+    params.or = `(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`;
   }
 
   // Country & Location Filters
