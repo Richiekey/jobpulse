@@ -209,6 +209,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const syncAppliedJobToSheet = async (job: SyncJobPayload): Promise<{ success: boolean; message?: string }> => {
     if (!user) return { success: false, message: "User not logged in" };
 
+    const cachedWebhook = typeof window !== "undefined" ? localStorage.getItem("jp_gsheet_webhook") || "" : "";
+    const activeWebhook = profile?.google_sheet_webhook || cachedWebhook;
+
     try {
       const res = await fetch("/api/sync/sheet", {
         method: "POST",
@@ -222,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           location: job.location || "",
           salary: job.salary || "",
           source: job.source || "",
-          webhookUrl: profile?.google_sheet_webhook || "",
+          webhookUrl: activeWebhook,
           autoSync: profile?.auto_sync_sheet ?? true,
         }),
       });

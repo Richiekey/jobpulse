@@ -31,8 +31,35 @@ export async function POST(req: NextRequest) {
     let sheetSyncSuccess = false;
     let sheetSyncError = '';
 
+    // Auto-resolve webhook URL from user profile if not passed in payload
+    let resolvedWebhook = webhookUrl;
+    let resolvedAutoSync = autoSync;
+
+    if (!resolvedWebhook && userId) {
+      try {
+        const u = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const k = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
+        if (u && k) {
+          const profRes = await fetch(`${u}/rest/v1/profiles?id=eq.${userId}&select=google_sheet_webhook,auto_sync_sheet`, {
+            headers: { 'apikey': k, 'Authorization': `Bearer ${k}` },
+          });
+          if (profRes.ok) {
+            const profData = await profRes.json();
+            if (profData && profData[0]) {
+              resolvedWebhook = profData[0].google_sheet_webhook || '';
+              if (profData[0].auto_sync_sheet !== undefined) {
+                resolvedAutoSync = profData[0].auto_sync_sheet;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching user profile webhook from DB:', e);
+      }
+    }
+
     // 1. If webhook URL is set and autoSync is enabled, post to Google Apps Script webhook
-    if (webhookUrl && (autoSync || isTest)) {
+    if (resolvedWebhook && (resolvedAutoSync || isTest)) {
       try {
         const payload = {
           timestamp: new Date().toISOString(),
@@ -47,10 +74,10 @@ export async function POST(req: NextRequest) {
           isTest: !!isTest,
         };
 
-        if (!webhookUrl.includes('/macros/s/') || !webhookUrl.endsWith('/exec')) {
+        if (!resolvedWebhook.includes('/macros/s/') || !resolvedWebhook.endsWith('/exec')) {
           sheetSyncError = 'Invalid Webhook URL format. Make sure you deploy as a "Web app" and copy the URL ending in /exec (not the /edit or /library URL).';
         } else {
-          const sheetRes = await fetch(webhookUrl, {
+          const sheetRes = await fetch(resolvedWebhook, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

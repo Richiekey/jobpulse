@@ -173,7 +173,16 @@ export default function ProfilePage() {
 
       const data = await res.json();
       if (res.ok) {
-        setTestResult({ success: true, message: "Connection verified! A test row has been appended to your Google Sheet." });
+        setTestResult({ success: true, message: "Connection verified! A test row has been appended to your Google Sheet and settings are saved." });
+        if (typeof window !== "undefined") {
+          localStorage.setItem("jp_gsheet_webhook", googleSheetWebhook);
+        }
+        // Auto-save to profile
+        await updateProfile({
+          google_sheet_webhook: googleSheetWebhook,
+          google_sheet_url: googleSheetUrl,
+          auto_sync_sheet: autoSyncSheet,
+        });
       } else {
         setTestResult({ success: false, message: data.error || "Webhook test failed. Make sure deployment access is set to 'Anyone'." });
       }

@@ -10,7 +10,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
   Bookmark, BookmarkCheck, CheckCircle2, ThumbsDown, Eye, EyeOff,
   Filter, Tag, Sparkles, RotateCcw, ChevronDown, Globe, 
-  Code, Server, Monitor, BrainCircuit, LineChart, ShieldAlert
+  Code, Server, Monitor, BrainCircuit, LineChart, ShieldAlert, AlertCircle
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -487,7 +487,13 @@ export default function JobsDashboard() {
   const [fullJobData, setFullJobData] = useState<Job | null>(null);
 
   // Auth context for Google Sheets sync & user tracking
-  const { user, syncAppliedJobToSheet } = useAuth();
+  const { user, profile, syncAppliedJobToSheet } = useAuth();
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "warning" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "info" | "warning" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4500);
+  };
 
   // Tracking sets
   const [appliedSet, setAppliedSet] = useState<Set<string>>(new Set());
@@ -504,7 +510,7 @@ export default function JobsDashboard() {
     setSavedSet(getStoredSet("jp_saved"));
   }, []);
 
-  const toggleApplied = (id: string) => {
+  const toggleApplied = async (id: string) => {
     const isNowApplied = !appliedSet.has(id);
 
     setAppliedSet((prev) => {
@@ -515,10 +521,10 @@ export default function JobsDashboard() {
     });
 
     // If marked as applied and user is logged in, auto-sync to Google Sheet & cloud applications
-    if (isNowApplied && syncAppliedJobToSheet) {
+    if (isNowApplied) {
       const targetJob = jobs.find((j) => j.id === id) || (fullJobData?.id === id ? fullJobData : selectedJob);
-      if (targetJob) {
-        syncAppliedJobToSheet({
+      if (targetJob && syncAppliedJobToSheet) {
+        const result = await syncAppliedJobToSheet({
           id: targetJob.id,
           company_name: targetJob.company_name,
           title: targetJob.title,
@@ -528,7 +534,21 @@ export default function JobsDashboard() {
           salary: targetJob.salary_min ? `${targetJob.salary_min}-${targetJob.salary_max} ${targetJob.salary_currency || "USD"}` : "",
           source: targetJob.source,
         });
+
+        if (result.success) {
+          showToast(`Marked as applied & synced to Google Sheet! 📊`, "success");
+        } else if (!user) {
+          showToast(`Marked as applied. Sign in on /profile to auto-sync to Google Sheet.`, "info");
+        } else if (!profile?.google_sheet_webhook && typeof window !== "undefined" && !localStorage.getItem("jp_gsheet_webhook")) {
+          showToast(`Marked as applied. Add Google Sheet in Profile to auto-sync.`, "info");
+        } else {
+          showToast(`Marked as applied (${result.message})`, "warning");
+        }
+      } else {
+        showToast("Marked as applied ✓", "success");
       }
+    } else {
+      showToast("Unmarked application", "info");
     }
   };
 
@@ -1399,6 +1419,21 @@ export default function JobsDashboard() {
           onToggleHidden={toggleHidden}
           onToggleSaved={toggleSaved}
         />
+      )}
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div
+          className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium shadow-2xl backdrop-blur-xl animate-fade-in-up"
+          style={{
+            background: toast.type === "success" ? "rgba(16, 185, 129, 0.15)" : toast.type === "warning" ? "rgba(245, 158, 11, 0.15)" : "rgba(59, 130, 246, 0.15)",
+            borderColor: toast.type === "success" ? "rgba(16, 185, 129, 0.35)" : toast.type === "warning" ? "rgba(245, 158, 11, 0.35)" : "rgba(59, 130, 246, 0.35)",
+            color: toast.type === "success" ? "#34d399" : toast.type === "warning" ? "#fbbf24" : "#60a5fa",
+          }}
+        >
+          {toast.type === "success" ? <CheckCircle2 size={16} className="shrink-0" /> : <AlertCircle size={16} className="shrink-0" />}
+          <span>{toast.message}</span>
+        </div>
       )}
     </div>
   );
