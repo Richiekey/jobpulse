@@ -85,7 +85,7 @@ def clean_company_name(name: str) -> str:
     cleaned = re.sub(r'\b(Inc\.?|LLC|Corp\.?|Corporation|Ltd\.?|Limited|Group|Technologies|Tech|Software|Solutions)\b', '', cleaned, flags=re.I)
     return cleaned.strip()
 
-def get_direct_career_link(company: str) -> str:
+def get_direct_career_link(company: str) -> str | None:
     c_lower = company.lower().strip()
     c_clean = clean_company_name(company).lower()
     
@@ -94,10 +94,7 @@ def get_direct_career_link(company: str) -> str:
     if c_clean in ATS_COMPANY_MAP:
         return ATS_COMPANY_MAP[c_clean]
         
-    slug = re.sub(r'[^a-zA-Z0-9]', '', c_clean)
-    if slug:
-        return f"https://www.{slug}.com/careers"
-    return f"https://www.{re.sub(r'[^a-zA-Z0-9]', '', company.lower())}.com/careers"
+    return None
 
 print("Starting ATS link enrichment for Jobright listings...")
 # Fetch active Jobright jobs

@@ -687,61 +687,117 @@ export default function SavedJobsPage() {
               )}
 
               {/* Direct Links section */}
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                <div className="text-[11px] font-bold text-white uppercase tracking-wider">Direct Application Links</div>
-                <div className="flex flex-col gap-1.5">
-                  {selectedJob.apply_url && (
-                    <a
-                      href={selectedJob.apply_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-indigo-400 hover:underline flex items-center justify-between p-2 rounded-lg bg-black/30"
-                    >
-                      <span className="truncate">Official ATS Career Portal ({selectedJob.company_name})</span>
-                      <ExternalLink size={12} className="shrink-0 ml-2" />
-                    </a>
-                  )}
-                  {selectedJob.job_url && (
-                    <a
-                      href={selectedJob.job_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-muted hover:text-white flex items-center justify-between p-2 rounded-lg bg-black/20"
-                    >
-                      <span className="truncate">Jobright Listing Page</span>
-                      <ExternalLink size={12} className="shrink-0 ml-2" />
-                    </a>
-                  )}
-                </div>
-              </div>
+              {(() => {
+                const isJobright = selectedJob.source === "JOBRIGHT";
+                const hasDistinctAts = selectedJob.apply_url && selectedJob.job_url && selectedJob.apply_url !== selectedJob.job_url && !selectedJob.apply_url.includes("jobright.ai");
+
+                let atsName = "Company Site";
+                const linkToCheck = selectedJob.apply_url || selectedJob.job_url || "";
+                if (selectedJob.source === "GREENHOUSE" || linkToCheck.includes("greenhouse.io")) {
+                  atsName = "Greenhouse";
+                } else if (selectedJob.source === "ASHBY" || linkToCheck.includes("ashbyhq.com")) {
+                  atsName = "Ashby";
+                } else if (selectedJob.source === "WORKDAY" || linkToCheck.includes("myworkdayjobs.com")) {
+                  atsName = "Workday";
+                } else if (selectedJob.source === "LEVER" || linkToCheck.includes("lever.co")) {
+                  atsName = "Lever";
+                } else if (selectedJob.source === "WORKABLE" || linkToCheck.includes("workable.com")) {
+                  atsName = "Workable";
+                } else if (selectedJob.source === "APPLYTOJOB" || linkToCheck.includes("applytojob.com")) {
+                  atsName = "JazzHR";
+                } else if (selectedJob.source === "ICIMS" || linkToCheck.includes("icims.com")) {
+                  atsName = "iCIMS";
+                } else if (selectedJob.source === "JOBVITE" || linkToCheck.includes("jobvite.com")) {
+                  atsName = "Jobvite";
+                }
+
+                const primaryApplyUrl = hasDistinctAts ? selectedJob.apply_url : (selectedJob.apply_url || selectedJob.job_url);
+                const primaryButtonText = hasDistinctAts 
+                  ? `Apply on ${atsName}` 
+                  : (isJobright ? "Apply on Jobright" : `Apply on ${atsName}`);
+
+                return (
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                    <div className="text-[11px] font-bold text-white uppercase tracking-wider">
+                      {hasDistinctAts ? `Direct ATS Application Link (${atsName})` : (isJobright ? "Job Application Link (via Jobright)" : `${atsName} Application Link`)}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <a
+                        href={primaryApplyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-indigo-400 hover:underline flex items-center justify-between p-2 rounded-lg bg-black/30"
+                      >
+                        <span className="truncate">{primaryApplyUrl}</span>
+                        <ExternalLink size={12} className="shrink-0 ml-2" />
+                      </a>
+                      {hasDistinctAts && isJobright && selectedJob.job_url && (
+                        <a
+                          href={selectedJob.job_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-muted hover:text-white flex items-center justify-between p-2 rounded-lg bg-black/20"
+                        >
+                          <span className="truncate">Jobright Listing: {selectedJob.job_url}</span>
+                          <ExternalLink size={12} className="shrink-0 ml-2" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-white/10 flex items-center justify-between bg-black/20">
-              <button
-                type="button"
-                onClick={() => toggleApplied(selectedJob.id)}
-                className="text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer border flex items-center gap-1.5"
-                style={{
-                  background: appliedIds.has(selectedJob.id) ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.04)",
-                  borderColor: appliedIds.has(selectedJob.id) ? "rgba(16, 185, 129, 0.4)" : "var(--border-subtle)",
-                  color: appliedIds.has(selectedJob.id) ? "#34d399" : "var(--text-secondary)",
-                }}
-              >
-                <CheckCircle2 size={14} />
-                <span>{appliedIds.has(selectedJob.id) ? "Marked as Applied ✓" : "Mark as Applied"}</span>
-              </button>
+            {(() => {
+              const isJobright = selectedJob.source === "JOBRIGHT";
+              const hasDistinctAts = selectedJob.apply_url && selectedJob.job_url && selectedJob.apply_url !== selectedJob.job_url && !selectedJob.apply_url.includes("jobright.ai");
 
-              <a
-                href={selectedJob.apply_url || selectedJob.job_url}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-primary text-xs py-2 px-5 rounded-xl font-bold flex items-center gap-1.5"
-              >
-                <span>Apply on Company Site</span>
-                <ExternalLink size={13} />
-              </a>
-            </div>
+              let atsName = "Company Site";
+              const linkToCheck = selectedJob.apply_url || selectedJob.job_url || "";
+              if (selectedJob.source === "GREENHOUSE" || linkToCheck.includes("greenhouse.io")) {
+                atsName = "Greenhouse";
+              } else if (selectedJob.source === "ASHBY" || linkToCheck.includes("ashbyhq.com")) {
+                atsName = "Ashby";
+              } else if (selectedJob.source === "WORKDAY" || linkToCheck.includes("myworkdayjobs.com")) {
+                atsName = "Workday";
+              } else if (selectedJob.source === "LEVER" || linkToCheck.includes("lever.co")) {
+                atsName = "Lever";
+              }
+
+              const primaryApplyUrl = hasDistinctAts ? selectedJob.apply_url : (selectedJob.apply_url || selectedJob.job_url);
+              const primaryButtonText = hasDistinctAts 
+                ? `Apply on ${atsName}` 
+                : (isJobright ? "Apply on Jobright" : `Apply on ${atsName}`);
+
+              return (
+                <div className="p-4 border-t border-white/10 flex items-center justify-between bg-black/20">
+                  <button
+                    type="button"
+                    onClick={() => toggleApplied(selectedJob.id)}
+                    className="text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer border flex items-center gap-1.5"
+                    style={{
+                      background: appliedIds.has(selectedJob.id) ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.04)",
+                      borderColor: appliedIds.has(selectedJob.id) ? "rgba(16, 185, 129, 0.4)" : "var(--border-subtle)",
+                      color: appliedIds.has(selectedJob.id) ? "#34d399" : "var(--text-secondary)",
+                    }}
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>{appliedIds.has(selectedJob.id) ? "Marked as Applied ✓" : "Mark as Applied"}</span>
+                  </button>
+
+                  <a
+                    href={primaryApplyUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-primary text-xs py-2 px-5 rounded-xl font-bold flex items-center gap-1.5"
+                  >
+                    <span>{primaryButtonText}</span>
+                    <ExternalLink size={13} />
+                  </a>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
