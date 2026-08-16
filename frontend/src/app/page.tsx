@@ -556,7 +556,7 @@ export default function JobsDashboard() {
     try {
       const params = new URLSearchParams();
       params.set("page", String(p));
-      params.set("per_page", "24");
+      params.set("per_page", String(PAGE_SIZE));
       if (query) params.set("q", query);
       if (locationState.country) params.set("country", locationState.country);
       if (locationState.cityOrState) params.set("location", locationState.cityOrState);
@@ -596,6 +596,14 @@ export default function JobsDashboard() {
   useEffect(() => { fetchJobs(page); }, [page]);
 
   const handleSearch = () => { setPage(1); fetchJobs(1); };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page) return;
+    setPage(newPage);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 380, behavior: "smooth" });
+    }
+  };
 
   // Filter out applied/hidden jobs
   const visibleJobs = jobs.filter((job) => {
@@ -1225,20 +1233,101 @@ export default function JobsDashboard() {
             })}
           </div>
 
-          {/* ── Pagination ─────────────────── */}
-          {totalPages > 1 && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 32, fontSize: 13, color: "var(--text-secondary)" }}>
-              <button className="btn-secondary" onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1} style={{ padding: "8px 14px" }}>
-                <ChevronLeft size={16} />
-              </button>
-              <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                Page <strong style={{ color: "var(--text-primary)" }}>{page}</strong> of <strong style={{ color: "var(--text-primary)" }}>{totalPages}</strong>
-              </span>
-              <button className="btn-secondary" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages} style={{ padding: "8px 14px" }}>
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          )}
+          {/* ── Chunked Numbered Pagination Bar ─────────────────── */}
+          {totalPages > 1 && (() => {
+            const BLOCK_SIZE = 10;
+            const currentBlock = Math.floor((page - 1) / BLOCK_SIZE);
+            const startPage = currentBlock * BLOCK_SIZE + 1;
+            const endPage = Math.min(startPage + BLOCK_SIZE - 1, totalPages);
+
+            const pageNumbers: number[] = [];
+            for (let i = startPage; i <= endPage; i++) {
+              pageNumbers.push(i);
+            }
+
+            const hasPrevBlock = startPage > 1;
+            const hasNextBlock = endPage < totalPages;
+
+            return (
+              <div className="mt-10 mb-8 flex flex-col items-center gap-3 animate-fade-in-up">
+                <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 select-none">
+                  {/* Previous Page Button */}
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page <= 1}
+                    className="h-9 px-3 rounded-xl text-xs font-medium border border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 cursor-pointer"
+                    title="Previous Page"
+                  >
+                    <ChevronLeft size={15} />
+                    <span className="hidden sm:inline">Prev</span>
+                  </button>
+
+                  {/* Jump to Previous 10-Page Block */}
+                  {hasPrevBlock && (
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(startPage - 1)}
+                      className="min-w-[36px] h-9 px-2 rounded-xl text-xs font-semibold text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08] transition-all cursor-pointer flex items-center justify-center tracking-widest"
+                      title={`Jump to Page ${startPage - 1}`}
+                    >
+                      ...
+                    </button>
+                  )}
+
+                  {/* Page Numbers for Current Block (e.g. 1..10 or 11..20) */}
+                  {pageNumbers.map((p) => {
+                    const isActive = p === page;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handlePageChange(p)}
+                        className={`min-w-[36px] h-9 px-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
+                          isActive
+                            ? "bg-zinc-100 text-zinc-900 shadow-md font-bold"
+                            : "text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08]"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+
+                  {/* Jump to Next 10-Page Block */}
+                  {hasNextBlock && (
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(endPage + 1)}
+                      className="min-w-[36px] h-9 px-2 rounded-xl text-xs font-semibold text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08] transition-all cursor-pointer flex items-center justify-center tracking-widest"
+                      title={`Jump to Page ${endPage + 1}`}
+                    >
+                      ...
+                    </button>
+                  )}
+
+                  {/* Next Page Button */}
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page >= totalPages}
+                    className="h-9 px-3 rounded-xl text-xs font-medium border border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 cursor-pointer"
+                    title="Next Page"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+
+                {/* Status Indicator */}
+                <div className="text-xs text-zinc-500 font-mono tracking-tight">
+                  Page <span className="text-zinc-300 font-semibold">{page}</span> of{" "}
+                  <span className="text-zinc-300 font-semibold">{totalPages}</span>
+                  {total > 0 && <span className="text-zinc-600"> • {total.toLocaleString()} total jobs</span>}
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
 
