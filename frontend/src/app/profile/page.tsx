@@ -333,12 +333,20 @@ export default function ProfilePage() {
               </label>
               <input
                 type="url"
-                placeholder="https://script.google.com/macros/s/.../exec"
+                placeholder="https://script.google.com/macros/s/AKfy.../exec"
                 value={googleSheetWebhook}
-                onChange={(e) => setGoogleSheetWebhook(e.target.value)}
+                onChange={(e) => setGoogleSheetWebhook(e.target.value.trim())}
                 className="input-field"
                 style={{ width: "100%", fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}
               />
+              {googleSheetWebhook && (!googleSheetWebhook.includes("/macros/s/") || !googleSheetWebhook.endsWith("/exec")) && (
+                <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: "rgba(251, 191, 36, 0.1)", border: "1px solid rgba(251, 191, 36, 0.3)", fontSize: 12, color: "#fbbf24", display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertCircle size={15} className="shrink-0 text-amber-400" />
+                  <span>
+                    <strong>Incorrect URL:</strong> You must copy the deployed Web App URL ending in <strong>/exec</strong> (not the /library or editor URL). In Google Apps Script, click <strong>Deploy &gt; New deployment</strong>, select <strong>Web app</strong>, set <em>Who has access</em> to <strong>Anyone</strong>, and click Deploy.
+                  </span>
+                </div>
+              )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>

@@ -47,17 +47,25 @@ export async function POST(req: NextRequest) {
           isTest: !!isTest,
         };
 
-        const sheetRes = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          redirect: 'follow',
-        });
-
-        if (sheetRes.ok) {
-          sheetSyncSuccess = true;
+        if (!webhookUrl.includes('/macros/s/') || !webhookUrl.endsWith('/exec')) {
+          sheetSyncError = 'Invalid Webhook URL format. Make sure you deploy as a "Web app" and copy the URL ending in /exec (not the /edit or /library URL).';
         } else {
-          sheetSyncError = `Google Sheet webhook returned status ${sheetRes.status}`;
+          const sheetRes = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            redirect: 'follow',
+          });
+
+          if (sheetRes.ok) {
+            sheetSyncSuccess = true;
+          } else if (sheetRes.status === 401 || sheetRes.status === 403) {
+            sheetSyncError = 'Google Sheet returned status 401/403 (Unauthorized). In Google Apps Script, click "Deploy > Manage deployments > Edit", set "Who has access" to "Anyone", and click Deploy.';
+          } else if (sheetRes.status === 404) {
+            sheetSyncError = 'Google Sheet returned status 404 (Not Found). Please check that your Web App deployment is active and the URL is correct.';
+          } else {
+            sheetSyncError = `Google Sheet webhook returned status ${sheetRes.status}. Check your Apps Script execution logs.`;
+          }
         }
       } catch (err: any) {
         sheetSyncError = err?.message || 'Failed to reach Google Sheet webhook';
