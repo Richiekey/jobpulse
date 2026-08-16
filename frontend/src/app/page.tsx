@@ -9,7 +9,8 @@ import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
   Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
   Bookmark, BookmarkCheck, CheckCircle2, ThumbsDown, Eye, EyeOff,
-  Filter, Tag, Sparkles, RotateCcw, ChevronDown,
+  Filter, Tag, Sparkles, RotateCcw, ChevronDown, Globe, 
+  Code, Server, Monitor, BrainCircuit, LineChart, ShieldAlert
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -717,14 +718,14 @@ export default function JobsDashboard() {
         </div>
       </div>
 
-      {/* ── Search & Filter Controls Bar (Ultra-Premium Redesign) ─────────────────── */}
+      {/* ── Search & Filter Controls Bar (Linear/Vercel Aesthetic) ─────────────────── */}
       <div
         className="animate-fade-in-up"
         style={{
           animationDelay: "60ms",
-          background: "rgba(18, 20, 29, 0.85)",
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255, 255, 255, 0.09)",
+          background: "rgba(255, 255, 255, 0.02)",
+          backdropFilter: "blur(24px)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
           borderRadius: 20,
           padding: "12px 14px",
           marginBottom: 16,
@@ -732,12 +733,12 @@ export default function JobsDashboard() {
           gap: 10,
           alignItems: "center",
           flexWrap: "wrap",
-          boxShadow: "0 20px 40px -15px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 20px 40px -15px rgba(0,0,0,0.7)",
         }}
       >
         {/* Search Input */}
         <div style={{ position: "relative", flex: "1 1 260px", minWidth: 220 }}>
-          <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
+          <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#71717a" }} />
           <input
             type="text"
             placeholder="Search keywords, job titles, companies..."
@@ -748,16 +749,17 @@ export default function JobsDashboard() {
             style={{
               paddingLeft: 38,
               paddingRight: query ? 36 : 14,
-              background: "rgba(255, 255, 255, 0.03)",
-              borderColor: "rgba(255, 255, 255, 0.08)",
+              background: "rgba(255, 255, 255, 0.04)",
+              borderColor: "transparent",
               borderRadius: 12,
+              color: "#f4f4f5",
             }}
           />
           {query && (
             <button
               type="button"
               onClick={() => { setQuery(""); }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-md cursor-pointer transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-200 p-1 rounded-md cursor-pointer transition-colors"
               title="Clear search"
             >
               <X size={13} />
@@ -782,19 +784,19 @@ export default function JobsDashboard() {
           <select
             value={remoteType}
             onChange={(e) => setRemoteType(e.target.value)}
-            className="h-11 px-3.5 pr-8 rounded-xl text-xs font-semibold cursor-pointer border transition-colors select-none appearance-none"
+            className="h-11 px-3.5 pr-8 rounded-xl text-xs font-medium cursor-pointer border transition-colors select-none appearance-none"
             style={{
-              background: remoteType ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.03)",
-              borderColor: remoteType ? "rgba(99, 102, 241, 0.45)" : "rgba(255, 255, 255, 0.08)",
-              color: remoteType ? "#a5b4fc" : "#94a3b8",
+              background: remoteType ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+              borderColor: remoteType ? "rgba(255, 255, 255, 0.2)" : "transparent",
+              color: remoteType ? "#f4f4f5" : "#a1a1aa",
             }}
           >
-            <option value="" className="bg-[#141721] text-slate-300">All Remote Types</option>
-            <option value="REMOTE" className="bg-[#141721] text-slate-100">Remote Only</option>
-            <option value="HYBRID" className="bg-[#141721] text-slate-100">Hybrid</option>
-            <option value="ONSITE" className="bg-[#141721] text-slate-100">Onsite Only</option>
+            <option value="" className="bg-[#09090b] text-zinc-400">All Remote Types</option>
+            <option value="REMOTE" className="bg-[#09090b] text-zinc-200">Remote Only</option>
+            <option value="HYBRID" className="bg-[#09090b] text-zinc-200">Hybrid</option>
+            <option value="ONSITE" className="bg-[#09090b] text-zinc-200">Onsite Only</option>
           </select>
-          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
         </div>
 
         {/* ATS Source Select */}
@@ -802,32 +804,28 @@ export default function JobsDashboard() {
           <select
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            className="h-11 px-3.5 pr-8 rounded-xl text-xs font-semibold cursor-pointer border transition-colors select-none appearance-none"
+            className="h-11 px-3.5 pr-8 rounded-xl text-xs font-medium cursor-pointer border transition-colors select-none appearance-none"
             style={{
-              background: source ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.03)",
-              borderColor: source ? "rgba(99, 102, 241, 0.45)" : "rgba(255, 255, 255, 0.08)",
-              color: source ? "#a5b4fc" : "#94a3b8",
+              background: source ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+              borderColor: source ? "rgba(255, 255, 255, 0.2)" : "transparent",
+              color: source ? "#f4f4f5" : "#a1a1aa",
             }}
           >
-            <option value="" className="bg-[#141721] text-slate-300">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "13.5k+"})</option>
-            <option value="JOBRIGHT" className="bg-[#141721] text-slate-100">Jobright (9.7k+)</option>
-            <option value="GREENHOUSE" className="bg-[#141721] text-slate-100">Greenhouse (3.3k+)</option>
-            <option value="ASHBY" className="bg-[#141721] text-slate-100">Ashby (440+)</option>
-            <option value="WORKDAY" className="bg-[#141721] text-slate-100">Workday (29)</option>
-            <option value="LEVER" className="bg-[#141721] text-slate-100">Lever (24)</option>
+            <option value="" className="bg-[#09090b] text-zinc-400">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "13.5k+"})</option>
+            <option value="JOBRIGHT" className="bg-[#09090b] text-zinc-200">Jobright (9.7k+)</option>
+            <option value="GREENHOUSE" className="bg-[#09090b] text-zinc-200">Greenhouse (3.3k+)</option>
+            <option value="ASHBY" className="bg-[#09090b] text-zinc-200">Ashby (440+)</option>
+            <option value="WORKDAY" className="bg-[#09090b] text-zinc-200">Workday (29)</option>
+            <option value="LEVER" className="bg-[#09090b] text-zinc-200">Lever (24)</option>
           </select>
-          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
         </div>
 
         {/* Search Button */}
         <button
           type="button"
           onClick={handleSearch}
-          className="h-11 px-5 rounded-xl text-xs font-bold text-white flex items-center gap-2 cursor-pointer shadow-lg transition-transform active:scale-95"
-          style={{
-            background: "linear-gradient(135deg, #3b82f6, #6366f1)",
-            boxShadow: "0 4px 15px rgba(99, 102, 241, 0.35)",
-          }}
+          className="h-11 px-5 rounded-xl text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-white flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
         >
           <Search size={14} />
           <span>Search</span>
@@ -845,11 +843,11 @@ export default function JobsDashboard() {
               setSource("");
               setSelectedSkills(new Set());
             }}
-            className="h-11 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5"
+            className="h-11 px-3.5 rounded-xl text-xs font-medium transition-all cursor-pointer border flex items-center gap-1.5"
             style={{
-              background: "rgba(239, 68, 68, 0.1)",
-              borderColor: "rgba(239, 68, 68, 0.3)",
-              color: "#f87171",
+              background: "transparent",
+              borderColor: "rgba(255, 255, 255, 0.1)",
+              color: "#a1a1aa",
             }}
             title="Clear all active search and filter constraints"
           >
@@ -860,24 +858,24 @@ export default function JobsDashboard() {
       </div>
 
       {/* ── Quick Filter Presets Row ─────────────────── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-5 scrollbar-hide text-xs animate-fade-in-up" style={{ animationDelay: "90ms" }}>
-        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap pl-1 mr-1">
-          Quick Filters:
+      <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-5 scrollbar-hide text-[11px] animate-fade-in-up" style={{ animationDelay: "90ms" }}>
+        <span className="font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap pl-1 mr-2">
+          Quick Filters
         </span>
 
         {/* Remote Preset */}
         <button
           type="button"
           onClick={() => setRemoteType(remoteType === "REMOTE" ? "" : "REMOTE")}
-          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
+          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: remoteType === "REMOTE" ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: remoteType === "REMOTE" ? "rgba(99, 102, 241, 0.5)" : "rgba(255, 255, 255, 0.06)",
-            color: remoteType === "REMOTE" ? "#a5b4fc" : "#94a3b8",
-            boxShadow: remoteType === "REMOTE" ? "0 0 12px rgba(99, 102, 241, 0.2)" : "none",
+            background: remoteType === "REMOTE" ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+            borderColor: remoteType === "REMOTE" ? "rgba(255, 255, 255, 0.2)" : "transparent",
+            color: remoteType === "REMOTE" ? "#f4f4f5" : "#a1a1aa",
           }}
         >
-          <span>🌐</span> Remote Only
+          <Globe size={13} style={{ color: remoteType === "REMOTE" ? "#fff" : "#71717a" }} />
+          Remote Only
         </button>
 
         {/* Full Stack Preset */}
@@ -887,15 +885,15 @@ export default function JobsDashboard() {
             const tag = "Full Stack Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
+          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Full Stack Engineer") ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Full Stack Engineer") ? "rgba(16, 185, 129, 0.5)" : "rgba(255, 255, 255, 0.06)",
-            color: selectedFunctions.includes("Full Stack Engineer") ? "#34d399" : "#94a3b8",
-            boxShadow: selectedFunctions.includes("Full Stack Engineer") ? "0 0 12px rgba(16, 185, 129, 0.2)" : "none",
+            background: selectedFunctions.includes("Full Stack Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+            borderColor: selectedFunctions.includes("Full Stack Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
+            color: selectedFunctions.includes("Full Stack Engineer") ? "#f4f4f5" : "#a1a1aa",
           }}
         >
-          <span>💻</span> Full Stack
+          <Code size={13} style={{ color: selectedFunctions.includes("Full Stack Engineer") ? "#fff" : "#71717a" }} />
+          Full Stack
         </button>
 
         {/* Backend Preset */}
@@ -905,15 +903,15 @@ export default function JobsDashboard() {
             const tag = "Backend Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
+          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Backend Engineer") ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Backend Engineer") ? "rgba(16, 185, 129, 0.5)" : "rgba(255, 255, 255, 0.06)",
-            color: selectedFunctions.includes("Backend Engineer") ? "#34d399" : "#94a3b8",
-            boxShadow: selectedFunctions.includes("Backend Engineer") ? "0 0 12px rgba(16, 185, 129, 0.2)" : "none",
+            background: selectedFunctions.includes("Backend Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+            borderColor: selectedFunctions.includes("Backend Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
+            color: selectedFunctions.includes("Backend Engineer") ? "#f4f4f5" : "#a1a1aa",
           }}
         >
-          <span>⚙️</span> Backend
+          <Server size={13} style={{ color: selectedFunctions.includes("Backend Engineer") ? "#fff" : "#71717a" }} />
+          Backend
         </button>
 
         {/* Frontend Preset */}
@@ -923,15 +921,15 @@ export default function JobsDashboard() {
             const tag = "Frontend Software Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
+          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(56, 189, 248, 0.2)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(56, 189, 248, 0.5)" : "rgba(255, 255, 255, 0.06)",
-            color: selectedFunctions.includes("Frontend Software Engineer") ? "#38bdf8" : "#94a3b8",
-            boxShadow: selectedFunctions.includes("Frontend Software Engineer") ? "0 0 12px rgba(56, 189, 248, 0.2)" : "none",
+            background: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+            borderColor: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
+            color: selectedFunctions.includes("Frontend Software Engineer") ? "#f4f4f5" : "#a1a1aa",
           }}
         >
-          <span>🎨</span> Frontend
+          <Monitor size={13} style={{ color: selectedFunctions.includes("Frontend Software Engineer") ? "#fff" : "#71717a" }} />
+          Frontend
         </button>
 
         {/* AI & ML Preset */}
@@ -941,15 +939,15 @@ export default function JobsDashboard() {
             const tag = "Machine Learning Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
+          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(168, 85, 247, 0.2)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(168, 85, 247, 0.5)" : "rgba(255, 255, 255, 0.06)",
-            color: selectedFunctions.includes("Machine Learning Engineer") ? "#c084fc" : "#94a3b8",
-            boxShadow: selectedFunctions.includes("Machine Learning Engineer") ? "0 0 12px rgba(168, 85, 247, 0.2)" : "none",
+            background: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+            borderColor: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
+            color: selectedFunctions.includes("Machine Learning Engineer") ? "#f4f4f5" : "#a1a1aa",
           }}
         >
-          <span>🤖</span> AI / ML
+          <BrainCircuit size={13} style={{ color: selectedFunctions.includes("Machine Learning Engineer") ? "#fff" : "#71717a" }} />
+          AI / ML
         </button>
 
         {/* Data Analyst Preset */}
@@ -959,15 +957,15 @@ export default function JobsDashboard() {
             const tag = "Data Analyst";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
+          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Data Analyst") ? "rgba(245, 158, 11, 0.2)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Data Analyst") ? "rgba(245, 158, 11, 0.5)" : "rgba(255, 255, 255, 0.06)",
-            color: selectedFunctions.includes("Data Analyst") ? "#fbbf24" : "#94a3b8",
-            boxShadow: selectedFunctions.includes("Data Analyst") ? "0 0 12px rgba(245, 158, 11, 0.2)" : "none",
+            background: selectedFunctions.includes("Data Analyst") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+            borderColor: selectedFunctions.includes("Data Analyst") ? "rgba(255, 255, 255, 0.2)" : "transparent",
+            color: selectedFunctions.includes("Data Analyst") ? "#f4f4f5" : "#a1a1aa",
           }}
         >
-          <span>📊</span> Data Analyst
+          <LineChart size={13} style={{ color: selectedFunctions.includes("Data Analyst") ? "#fff" : "#71717a" }} />
+          Data Analyst
         </button>
 
         {/* Security Preset */}
@@ -977,15 +975,15 @@ export default function JobsDashboard() {
             const tag = "Cyber Security Engineer";
             setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
           }}
-          className="h-8 px-3.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
+          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
           style={{
-            background: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 255, 255, 0.03)",
-            borderColor: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(239, 68, 68, 0.5)" : "rgba(255, 255, 255, 0.06)",
-            color: selectedFunctions.includes("Cyber Security Engineer") ? "#f87171" : "#94a3b8",
-            boxShadow: selectedFunctions.includes("Cyber Security Engineer") ? "0 0 12px rgba(239, 68, 68, 0.2)" : "none",
+            background: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+            borderColor: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
+            color: selectedFunctions.includes("Cyber Security Engineer") ? "#f4f4f5" : "#a1a1aa",
           }}
         >
-          <span>🛡️</span> Cyber Security
+          <ShieldAlert size={13} style={{ color: selectedFunctions.includes("Cyber Security Engineer") ? "#fff" : "#71717a" }} />
+          Cyber Security
         </button>
       </div>
 

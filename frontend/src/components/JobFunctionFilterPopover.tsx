@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Briefcase, Search, ChevronDown, X, Check, Sparkles, Layers } from "lucide-react";
+import { Briefcase, Search, ChevronDown, X, Check, Layers, Code, BrainCircuit, ShieldAlert, Palette, LineChart, Terminal } from "lucide-react";
 
 export interface JobFunctionCategory {
   categoryName: string;
-  icon: string;
+  icon: React.ElementType;
   subFunctions: string[];
 }
 
 export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
   {
     categoryName: "Software Engineering",
-    icon: "💻",
+    icon: Terminal,
     subFunctions: [
       "Full Stack Engineer",
       "Backend Engineer",
@@ -28,8 +28,8 @@ export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
     ],
   },
   {
-    categoryName: "Data & AI / Machine Learning",
-    icon: "🤖",
+    categoryName: "Data & AI / ML",
+    icon: BrainCircuit,
     subFunctions: [
       "Data Analyst",
       "Data Scientist",
@@ -45,7 +45,7 @@ export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
   },
   {
     categoryName: "Cybersecurity & Cloud",
-    icon: "🛡️",
+    icon: ShieldAlert,
     subFunctions: [
       "Cyber Security Engineer",
       "Cloud Security Engineer",
@@ -57,7 +57,7 @@ export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
   },
   {
     categoryName: "Product & Design",
-    icon: "🎨",
+    icon: Palette,
     subFunctions: [
       "Product Manager",
       "Technical Program Manager",
@@ -67,8 +67,8 @@ export const JOB_FUNCTION_GROUPS: JobFunctionCategory[] = [
     ],
   },
   {
-    categoryName: "Business & Operations",
-    icon: "📊",
+    categoryName: "Business & Ops",
+    icon: LineChart,
     subFunctions: [
       "Account Executive",
       "Sales Development Rep",
@@ -92,12 +92,10 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
 
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Sync internal state with props
   useEffect(() => {
     setTempSelected(selectedFunctions);
   }, [selectedFunctions, open]);
 
-  // Click outside listener
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
@@ -132,7 +130,6 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
     setOpen(false);
   };
 
-  // Filter list by active tab and search query
   const filteredGroups = useMemo(() => {
     return JOB_FUNCTION_GROUPS.map((group) => {
       if (activeTab !== "All" && group.categoryName !== activeTab) {
@@ -149,7 +146,6 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
     }).filter(Boolean) as JobFunctionCategory[];
   }, [searchQuery, activeTab]);
 
-  // Trigger button label
   const getTriggerLabel = () => {
     if (selectedFunctions.length === 0) return "All Job Functions";
     if (selectedFunctions.length === 1) return selectedFunctions[0];
@@ -160,163 +156,155 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
 
   return (
     <div className="relative inline-block text-left" ref={popoverRef}>
-      {/* Trigger Button Pill */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="h-11 flex items-center gap-2.5 px-4 rounded-xl text-xs font-semibold transition-all duration-200 select-none cursor-pointer border"
+        className="h-11 flex items-center gap-2.5 px-4 rounded-xl text-xs font-medium transition-all duration-200 select-none cursor-pointer border"
         style={{
-          background: isFiltered
-            ? "linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(5, 150, 105, 0.08))"
-            : "rgba(255, 255, 255, 0.03)",
-          borderColor: isFiltered ? "rgba(16, 185, 129, 0.45)" : "rgba(255, 255, 255, 0.08)",
-          color: isFiltered ? "#34d399" : "#94a3b8",
-          boxShadow: isFiltered ? "0 0 15px rgba(16, 185, 129, 0.15)" : "none",
+          background: isFiltered ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
+          borderColor: isFiltered ? "rgba(255, 255, 255, 0.2)" : "transparent",
+          color: isFiltered ? "#f4f4f5" : "#a1a1aa",
         }}
       >
-        <Briefcase size={14} style={{ color: isFiltered ? "#34d399" : "#64748b" }} />
+        <Briefcase size={14} style={{ color: isFiltered ? "#fff" : "#71717a" }} />
         <span className="truncate max-w-[150px]">{getTriggerLabel()}</span>
         <ChevronDown
           size={13}
-          className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180 text-emerald-400" : "text-slate-500"}`}
+          className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180 text-zinc-300" : "text-zinc-500"}`}
         />
       </button>
 
-      {/* Popover Card */}
       {open && (
         <div
           className="absolute left-0 z-50 mt-2.5 w-[340px] sm:w-[480px] max-h-[580px] overflow-hidden flex flex-col rounded-2xl p-5 animate-fade-in-up border"
           style={{
-            background: "#141721",
-            borderColor: "rgba(255, 255, 255, 0.12)",
-            boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06)",
-            backdropFilter: "blur(20px)",
+            background: "#09090b",
+            borderColor: "rgba(255, 255, 255, 0.08)",
+            boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
           }}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-3.5">
+          <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-3.5">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <Layers size={13} />
-              </div>
-              <span className="text-xs font-bold text-slate-100 uppercase tracking-wider">
+              <Layers size={14} className="text-zinc-400" />
+              <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
                 Select Job Functions
               </span>
             </div>
 
             {tempSelected.length > 0 ? (
-              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">
                 {tempSelected.length} Selected
               </span>
             ) : (
-              <span className="text-[11px] text-slate-400">Multi-select enabled</span>
+              <span className="text-[11px] text-zinc-500">Multi-select enabled</span>
             )}
           </div>
 
-          {/* Selected Mint Tags Area */}
           {tempSelected.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl mb-3 max-h-24 overflow-y-auto bg-emerald-500/[0.04] border border-emerald-500/20">
+            <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl mb-3 max-h-24 overflow-y-auto bg-white/[0.02] border border-white/5">
               {tempSelected.map((fn) => (
                 <span
                   key={fn}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all bg-white/10 text-zinc-200 border border-white/10"
                 >
                   <span>{fn}</span>
                   <button
                     type="button"
                     onClick={(e) => removeFunction(fn, e)}
-                    className="hover:opacity-80 p-0.5 rounded cursor-pointer transition-transform active:scale-90"
+                    className="hover:opacity-80 hover:text-white text-zinc-400 p-0.5 rounded cursor-pointer transition-transform active:scale-90"
                   >
-                    <X size={11} />
+                    <X size={12} />
                   </button>
                 </span>
               ))}
             </div>
           )}
 
-          {/* Category Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2.5 scrollbar-hide text-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2.5 scrollbar-hide text-xs">
             <button
               type="button"
               onClick={() => setActiveTab("All")}
-              className="px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer border"
               style={{
-                background: activeTab === "All" ? "rgba(255,255,255,0.12)" : "transparent",
-                color: activeTab === "All" ? "white" : "#94a3b8",
-                border: `1px solid ${activeTab === "All" ? "rgba(255,255,255,0.2)" : "transparent"}`,
+                background: activeTab === "All" ? "rgba(255, 255, 255, 0.1)" : "transparent",
+                color: activeTab === "All" ? "#fff" : "#a1a1aa",
+                borderColor: activeTab === "All" ? "rgba(255, 255, 255, 0.2)" : "transparent",
               }}
             >
               All Roles
             </button>
-            {JOB_FUNCTION_GROUPS.map((g) => (
-              <button
-                key={g.categoryName}
-                type="button"
-                onClick={() => setActiveTab(g.categoryName)}
-                className="px-2.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5"
-                style={{
-                  background: activeTab === g.categoryName ? "rgba(255,255,255,0.12)" : "transparent",
-                  color: activeTab === g.categoryName ? "white" : "#94a3b8",
-                  border: `1px solid ${activeTab === g.categoryName ? "rgba(255,255,255,0.2)" : "transparent"}`,
-                }}
-              >
-                <span>{g.icon}</span>
-                <span>{g.categoryName.split(" ")[0]}</span>
-              </button>
-            ))}
+            {JOB_FUNCTION_GROUPS.map((g) => {
+              const Icon = g.icon;
+              return (
+                <button
+                  key={g.categoryName}
+                  type="button"
+                  onClick={() => setActiveTab(g.categoryName)}
+                  className="px-2.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 border"
+                  style={{
+                    background: activeTab === g.categoryName ? "rgba(255, 255, 255, 0.1)" : "transparent",
+                    color: activeTab === g.categoryName ? "#fff" : "#a1a1aa",
+                    borderColor: activeTab === g.categoryName ? "rgba(255, 255, 255, 0.2)" : "transparent",
+                  }}
+                >
+                  <Icon size={13} className={activeTab === g.categoryName ? "text-zinc-200" : "text-zinc-500"} />
+                  <span>{g.categoryName.split(" ")[0]}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Subcategory Pills Grid */}
           <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 max-h-52 mb-3">
-            {filteredGroups.map((group) => (
-              <div key={group.categoryName}>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <span>{group.icon}</span>
-                  <span>{group.categoryName}</span>
+            {filteredGroups.map((group) => {
+              const Icon = group.icon;
+              return (
+                <div key={group.categoryName}>
+                  <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Icon size={12} />
+                    <span>{group.categoryName}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.subFunctions.map((fn) => {
+                      const isSelected = tempSelected.includes(fn);
+                      return (
+                        <button
+                          key={fn}
+                          type="button"
+                          onClick={() => toggleFunction(fn)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer select-none border"
+                          style={{
+                            background: isSelected ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.02)",
+                            color: isSelected ? "#fff" : "#a1a1aa",
+                            borderColor: isSelected ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.06)",
+                          }}
+                        >
+                          <span>{fn}</span>
+                          {isSelected && <Check size={12} className="text-zinc-300 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {group.subFunctions.map((fn) => {
-                    const isSelected = tempSelected.includes(fn);
-                    return (
-                      <button
-                        key={fn}
-                        type="button"
-                        onClick={() => toggleFunction(fn)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer select-none border"
-                        style={{
-                          background: isSelected ? "rgba(16, 185, 129, 0.18)" : "rgba(255,255,255,0.03)",
-                          color: isSelected ? "#34d399" : "#cbd5e1",
-                          borderColor: isSelected ? "rgba(16, 185, 129, 0.45)" : "rgba(255,255,255,0.06)",
-                        }}
-                      >
-                        <span>{fn}</span>
-                        {isSelected && <Check size={12} className="text-emerald-400 shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Search / Custom input at bottom */}
           <div className="relative mb-3.5">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Search or enter expected job function..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field pl-8.5 text-xs h-9 bg-black/40 border-white/10"
+              className="w-full pl-8.5 pr-3 text-xs h-9 bg-black/40 border border-white/10 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
             />
           </div>
 
-          {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/[0.08]">
+          <div className="flex items-center justify-between pt-3 border-t border-white/5">
             <button
               type="button"
               onClick={handleClear}
-              className="text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer px-2 py-1"
+              className="text-xs font-medium text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer px-2 py-1"
             >
               Clear All
             </button>
@@ -324,10 +312,7 @@ export default function JobFunctionFilterPopover({ selectedFunctions, onChange }
             <button
               type="button"
               onClick={handleConfirm}
-              className="btn-primary text-xs py-2 px-5 rounded-xl font-bold cursor-pointer shadow-lg"
-              style={{
-                background: "linear-gradient(135deg, #059669, #10b981)",
-              }}
+              className="text-xs py-2 px-5 rounded-xl font-semibold cursor-pointer text-zinc-900 bg-zinc-100 hover:bg-white transition-colors"
             >
               Confirm {tempSelected.length > 0 ? `(${tempSelected.length})` : ""}
             </button>
