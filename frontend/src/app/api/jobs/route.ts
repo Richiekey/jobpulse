@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     if (fnList.length === 1) {
       params.title = `ilike.*${fnList[0]}*`;
     } else if (fnList.length > 1) {
-      params.or = `(${fnList.map(f => `title.ilike.*${f}*`).join(',')})`;
+      params.title = `ilike(any).{${fnList.map(f => `*${f}*`).join(',')}}`;
     }
   }
 
