@@ -697,8 +697,21 @@ export default function JobsDashboard() {
             <button className="btn-secondary" onClick={() => setShowFilters(!showFilters)}>
               <Filter size={15} /> Filters {selectedSkills.size > 0 && <span style={{ background: "var(--accent-main)", color: "white", borderRadius: 999, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{selectedSkills.size}</span>}
             </button>
-            <button className="btn-secondary" onClick={() => window.open(`${API_BASE}/export/csv`, "_blank")}>
-              <Download size={15} /> Export
+            <button
+              type="button"
+              className="btn-secondary cursor-pointer"
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (query) params.set("q", query);
+                if (locationState.country) params.set("country", locationState.country);
+                if (locationState.cityOrState) params.set("location", locationState.cityOrState);
+                if (selectedFunctions.length > 0) params.set("functions", selectedFunctions.join(","));
+                if (remoteType) params.set("remote_type", remoteType);
+                if (source) params.set("source", source);
+                window.open(`${API_BASE}/export/csv?${params.toString()}`, "_blank");
+              }}
+            >
+              <Download size={15} /> Export CSV
             </button>
           </div>
         </div>
