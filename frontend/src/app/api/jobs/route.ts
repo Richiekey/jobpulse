@@ -36,8 +36,31 @@ export async function GET(req: NextRequest) {
   const q = sp.get('q');
   if (q) params.search_vector = `plfts.english.${q}`;
 
+  // Country & Location Filters
+  const country = sp.get('country');
   const location = sp.get('location');
-  if (location) params.location = `ilike.*${location}*`;
+  if (location) {
+    params.location = `ilike.*${location}*`;
+  } else if (country && country !== 'ALL') {
+    if (country === 'US') {
+      params.or = `(location.ilike.*US*,location.ilike.*United States*,location.ilike.*Remote*,country.eq.US)`;
+    } else if (country === 'CA') {
+      params.or = `(location.ilike.*Canada*,location.ilike.*Toronto*,location.ilike.*Vancouver*,country.eq.CA)`;
+    } else if (country === 'UK') {
+      params.or = `(location.ilike.*United Kingdom*,location.ilike.*London*,location.ilike.*UK*,country.eq.GB)`;
+    }
+  }
+
+  // Job Functions Multi-select
+  const functions = sp.get('functions');
+  if (functions) {
+    const fnList = functions.split(',').map(f => f.trim()).filter(Boolean);
+    if (fnList.length === 1) {
+      params.title = `ilike.*${fnList[0]}*`;
+    } else if (fnList.length > 1) {
+      params.or = `(${fnList.map(f => `title.ilike.*${f}*`).join(',')})`;
+    }
+  }
 
   const remoteType = sp.get('remote_type');
   if (remoteType) params.remote_type = `eq.${remoteType}`;

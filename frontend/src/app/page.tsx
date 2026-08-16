@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import LocationFilterPopover, { LocationFilterState } from "@/components/LocationFilterPopover";
+import JobFunctionFilterPopover from "@/components/JobFunctionFilterPopover";
 import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
   Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
@@ -428,10 +430,14 @@ export default function JobsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
+  const [locationState, setLocationState] = useState<LocationFilterState>({
+    country: "US",
+    allLocationsInCountry: true,
+    cityOrState: "",
+  });
+  const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
   const [remoteType, setRemoteType] = useState("");
   const [source, setSource] = useState("");
-  const [roleCategory, setRoleCategory] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -526,7 +532,7 @@ export default function JobsDashboard() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    const cacheKey = `${p}_${query}_${locationFilter}_${remoteType}_${source}_${roleCategory}_${[...selectedSkills].sort().join(",")}`;
+    const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${selectedFunctions.sort().join(",")}_${remoteType}_${source}_${[...selectedSkills].sort().join(",")}`;
     const cached = jobsMemoryCache.get(cacheKey);
     const isCacheValid = cached && (Date.now() - cached.timestamp < 60000); // 60s cache
 
@@ -550,10 +556,11 @@ export default function JobsDashboard() {
       params.set("page", String(p));
       params.set("per_page", "24");
       if (query) params.set("q", query);
-      if (locationFilter) params.set("location", locationFilter);
+      if (locationState.country) params.set("country", locationState.country);
+      if (locationState.cityOrState) params.set("location", locationState.cityOrState);
+      if (selectedFunctions.length > 0) params.set("functions", selectedFunctions.join(","));
       if (remoteType) params.set("remote_type", remoteType);
       if (source) params.set("source", source);
-      if (roleCategory) params.set("role_category", roleCategory);
       if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
 
       const timeoutId = setTimeout(() => controller.abort(), 12000);
@@ -575,16 +582,15 @@ export default function JobsDashboard() {
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') {
-        // Request was cancelled by a newer request or timeout, ignore
         return;
       }
       if (!cached) setError('Failed to connect to API');
     } finally {
       setLoading(false);
     }
-  }, [query, locationFilter, remoteType, source, roleCategory, selectedSkills, page]);
+  }, [query, locationState, selectedFunctions, remoteType, source, selectedSkills, page]);
 
-  useEffect(() => { setPage(1); fetchJobs(1); }, [remoteType, source, roleCategory, selectedSkills]);
+  useEffect(() => { setPage(1); fetchJobs(1); }, [remoteType, source, locationState, selectedFunctions, selectedSkills]);
   useEffect(() => { fetchJobs(page); }, [page]);
 
   const handleSearch = () => { setPage(1); fetchJobs(1); };
@@ -612,10 +618,11 @@ export default function JobsDashboard() {
         params.set("page", String(nextBatchPage));
         params.set("per_page", "12");
         if (query) params.set("q", query);
-        if (locationFilter) params.set("location", locationFilter);
+        if (locationState.country) params.set("country", locationState.country);
+        if (locationState.cityOrState) params.set("location", locationState.cityOrState);
+        if (selectedFunctions.length > 0) params.set("functions", selectedFunctions.join(","));
         if (remoteType) params.set("remote_type", remoteType);
         if (source) params.set("source", source);
-        if (roleCategory) params.set("role_category", roleCategory);
         if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
 
         const res = await fetch(`${API_BASE}/jobs?${params.toString()}`);
@@ -636,7 +643,7 @@ export default function JobsDashboard() {
     };
 
     replenishNextJobs();
-  }, [visibleJobs.length, loading, jobs.length, total, query, locationFilter, remoteType, source, roleCategory, selectedSkills]);
+  }, [visibleJobs.length, loading, jobs.length, total, query, locationState, selectedFunctions, remoteType, source, selectedSkills]);
 
   // Fetch full job for modal
   const openJobModal = async (job: Job) => {
@@ -683,7 +690,7 @@ export default function JobsDashboard() {
         </div>
       </div>
 
-      {/* ── Search Row ─────────────────── */}
+      {/* ── Search & Filter Controls Row Matching Jobright ─────────────────── */}
       <div
         className="animate-fade-in-up"
         style={{
@@ -694,40 +701,49 @@ export default function JobsDashboard() {
       >
         <div style={{ position: "relative", flex: "1 1 220px", minWidth: 200 }}>
           <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-          <input type="text" placeholder="Search titles, keywords..." value={query}
-            onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="input-field" style={{ paddingLeft: 40 }} />
+          <input
+            type="text"
+            placeholder="Search keywords, companies..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            className="input-field"
+            style={{ paddingLeft: 40 }}
+          />
         </div>
-        <div style={{ position: "relative", flex: "0 1 180px", minWidth: 140 }}>
-          <MapPin size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-          <input type="text" placeholder="Location..." value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="input-field" style={{ paddingLeft: 40 }} />
-        </div>
-        <select value={roleCategory} onChange={(e) => setRoleCategory(e.target.value)} className="select-field" style={{ flex: "0 1 170px" }}>
-          <option value="">All Roles</option>
-          {ROLE_CATEGORIES.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select value={remoteType} onChange={(e) => setRemoteType(e.target.value)} className="select-field" style={{ flex: "0 1 130px" }}>
+
+        {/* Jobright-style Country & Location Popover (Screenshot 1) */}
+        <LocationFilterPopover
+          value={locationState}
+          onChange={(newLoc) => setLocationState(newLoc)}
+        />
+
+        {/* Jobright-style Categorized & Subcategorized Job Function Multi-select (Screenshot 2) */}
+        <JobFunctionFilterPopover
+          selectedFunctions={selectedFunctions}
+          onChange={(fns) => setSelectedFunctions(fns)}
+        />
+
+        {/* Remote Type */}
+        <select value={remoteType} onChange={(e) => setRemoteType(e.target.value)} className="select-field" style={{ flex: "0 1 125px" }}>
           <option value="">All Types</option>
           <option value="REMOTE">Remote</option>
           <option value="HYBRID">Hybrid</option>
           <option value="ONSITE">Onsite</option>
         </select>
-        <select value={source} onChange={(e) => setSource(e.target.value)} className="select-field" style={{ flex: "0 1 170px" }}>
-          <option value="">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "14k+"})</option>
-          <option value="JOBRIGHT">Jobright (11.3k+)</option>
-          <option value="GREENHOUSE">Greenhouse (2.0k+)</option>
-          <option value="ASHBY">Ashby (920+)</option>
-          <option value="LEVER">Lever (300+)</option>
-          <option value="WORKDAY">Workday (46)</option>
-          <option value="WORKABLE">Workable (0)</option>
-          <option value="APPLYTOJOB">ApplyToJob (0)</option>
-          <option value="JOBVITE">Jobvite (0)</option>
-          <option value="ICIMS">iCIMS (0)</option>
+
+        {/* ATS Source */}
+        <select value={source} onChange={(e) => setSource(e.target.value)} className="select-field" style={{ flex: "0 1 160px" }}>
+          <option value="">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "13k+"})</option>
+          <option value="JOBRIGHT">Jobright (9.7k+)</option>
+          <option value="GREENHOUSE">Greenhouse (3.3k+)</option>
+          <option value="ASHBY">Ashby (440+)</option>
+          <option value="WORKDAY">Workday (29)</option>
+          <option value="LEVER">Lever (24)</option>
         </select>
+
         <button className="btn-primary" onClick={handleSearch} style={{ flexShrink: 0 }}>
-          <Search size={15} />
+          <Search size={15} /> Search
         </button>
       </div>
 
