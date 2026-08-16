@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import LocationFilterPopover, { LocationFilterState } from "@/components/LocationFilterPopover";
 import JobFunctionFilterPopover from "@/components/JobFunctionFilterPopover";
@@ -679,7 +680,20 @@ export default function JobsDashboard() {
               positions aggregated across ATS platforms
             </p>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <Link
+              href="/saved"
+              className="btn-secondary"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                borderColor: savedSet.size > 0 ? "rgba(99, 102, 241, 0.4)" : "var(--border-subtle)",
+                color: savedSet.size > 0 ? "var(--accent-glow)" : "var(--text-secondary)",
+              }}
+            >
+              <Bookmark size={14} /> Saved {savedSet.size > 0 && <span style={{ background: "var(--accent-main)", color: "white", borderRadius: 999, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedSet.size}</span>}
+            </Link>
             <button className="btn-secondary" onClick={() => setShowFilters(!showFilters)}>
               <Filter size={15} /> Filters {selectedSkills.size > 0 && <span style={{ background: "var(--accent-main)", color: "white", borderRadius: 999, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{selectedSkills.size}</span>}
             </button>

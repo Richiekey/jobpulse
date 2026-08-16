@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { User, LogIn, FileText, Table, LogOut, ChevronDown, Sparkles } from "lucide-react";
+import { User, LogIn, FileText, Table, LogOut, ChevronDown, Sparkles, Bookmark } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -69,6 +69,10 @@ export function Navbar() {
           <nav style={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Link href="/" className={`nav-link ${pathname === "/" ? "active" : ""}`}>
               Jobs
+            </Link>
+            <Link href="/saved" className={`nav-link ${pathname === "/saved" ? "active" : ""}`}>
+              <Bookmark size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />
+              Saved
             </Link>
             <Link href="/import" className={`nav-link ${pathname === "/import" ? "active" : ""}`}>
               Import
@@ -172,6 +176,26 @@ export function Navbar() {
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <User size={15} style={{ color: "var(--accent-glow)" }} /> Profile & Details
+                    </Link>
+
+                    <Link
+                      href="/saved"
+                      onClick={() => setDropdownOpen(false)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "8px 12px",
+                        fontSize: 13,
+                        color: "var(--text-primary)",
+                        textDecoration: "none",
+                        borderRadius: 8,
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <Bookmark size={15} style={{ color: "#818cf8" }} /> Saved Jobs Catalogue
                     </Link>
 
                     <Link

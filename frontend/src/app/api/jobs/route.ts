@@ -69,6 +69,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Exact IDs filter (for Saved Jobs catalogue)
+  const ids = sp.get('ids');
+  if (ids) {
+    const idList = ids.split(',').map(id => id.trim()).filter(Boolean);
+    if (idList.length > 0) {
+      params.id = `in.(${idList.join(',')})`;
+    }
+  }
+
   const remoteType = sp.get('remote_type');
   if (remoteType) params.remote_type = `eq.${remoteType}`;
 
