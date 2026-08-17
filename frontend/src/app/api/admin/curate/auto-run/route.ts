@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseFetch } from "@/lib/supabase";
 import {
   CurationCriteria,
   scoreJob,
@@ -9,18 +10,10 @@ import {
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+const SELECT_FIELDS = "id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category";
+
 export async function POST(req: NextRequest) {
   try {
-    const { url, key } = (() => {
-      const u = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-      const k = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || "";
-      return { url: u, key: k };
-    })();
-
-    if (!url || !key) {
-      return NextResponse.json({ error: "Missing Supabase configuration" }, { status: 500 });
-    }
-
     const criteria: CurationCriteria = {
       targetRoles: ["software engineer", "developer", "engineer", "full stack", "backend", "frontend", "devops"],
       skills: ["react", "typescript", "python", "javascript", "sql", "node.js", "docker", "aws", "golang"],
@@ -30,9 +23,11 @@ export async function POST(req: NextRequest) {
     };
 
     // 1. Fetch fresh warehouse jobs
-    const selectFields = "id,title,company_name,location,remote_type,employment_type,department,description,requirements,responsibilities,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category,is_published";
-    const res = await fetch(`${url}/rest/v1/jobs?select=${selectFields}&status=eq.ACTIVE&limit=2500&order=posted_at.desc.nullslast,created_at.desc`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    const res = await supabaseFetch("jobs", {
+      select: SELECT_FIELDS,
+      status: "eq.ACTIVE",
+      limit: "1500",
+      order: "posted_at.desc.nullslast,created_at.desc",
     });
 
     if (!res.ok) {
@@ -47,15 +42,10 @@ export async function POST(req: NextRequest) {
     const finalIds = selectedJobs.map((j) => j.id);
 
     // 3. Unpublish old jobs
-    await fetch(`${url}/rest/v1/jobs?is_published=eq.true`, {
+    await supabaseFetch("jobs", { is_published: "eq.true" }, {
       method: "PATCH",
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
       body: JSON.stringify({ is_published: false }),
+      Prefer: "return=minimal",
     });
 
     // 4. Publish 1,000 balanced jobs
@@ -67,18 +57,13 @@ export async function POST(req: NextRequest) {
       const chunk = finalIds.slice(i, i + chunkSize);
       const idFilter = `in.(${chunk.join(",")})`;
 
-      const patchRes = await fetch(`${url}/rest/v1/jobs?id=${idFilter}`, {
+      const patchRes = await supabaseFetch("jobs", { id: idFilter }, {
         method: "PATCH",
-        headers: {
-          apikey: key,
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-        },
         body: JSON.stringify({
           is_published: true,
           published_at: nowIso,
         }),
+        Prefer: "return=minimal",
       });
 
       if (patchRes.ok) publishedCount += chunk.length;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseFetch } from "@/lib/supabase";
 import {
   CurationCriteria,
   extractResumeKeywords,
@@ -9,6 +10,8 @@ import {
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const SELECT_FIELDS = "id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,16 +25,6 @@ export async function POST(req: NextRequest) {
       minScoreThreshold = 35,
       targetTotalJobs = 1000,
     } = body;
-
-    const { url, key } = (() => {
-      const u = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-      const k = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || "";
-      return { url: u, key: k };
-    })();
-
-    if (!url || !key) {
-      return NextResponse.json({ error: "Missing Supabase configuration" }, { status: 500 });
-    }
 
     // Auto-extract keywords if resume text is provided
     let finalRoles = targetRoles;
@@ -53,14 +46,17 @@ export async function POST(req: NextRequest) {
       targetTotalJobs,
     };
 
-    // Fetch pool of candidate jobs from database
-    const selectFields = "id,title,company_name,location,remote_type,employment_type,department,description,requirements,responsibilities,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category,is_published";
-    const res = await fetch(`${url}/rest/v1/jobs?select=${selectFields}&status=eq.ACTIVE&limit=2500&order=posted_at.desc.nullslast,created_at.desc`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    // Fetch pool of candidate jobs from database using supabaseFetch
+    const res = await supabaseFetch("jobs", {
+      select: SELECT_FIELDS,
+      status: "eq.ACTIVE",
+      limit: "1500",
+      order: "posted_at.desc.nullslast,created_at.desc",
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: "Failed to fetch warehouse jobs" }, { status: 500 });
+      const errText = await res.text();
+      return NextResponse.json({ error: `Database query failed: ${errText}` }, { status: 500 });
     }
 
     const warehouseJobs: RawJob[] = await res.json();
