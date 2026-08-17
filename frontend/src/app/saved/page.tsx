@@ -774,7 +774,10 @@ export default function SavedJobsPage() {
                 <div className="p-4 border-t border-white/10 flex items-center justify-between bg-black/20">
                   <button
                     type="button"
-                    onClick={() => toggleApplied(selectedJob.id)}
+                    onClick={() => {
+                      toggleApplied(selectedJob.id);
+                      setSelectedJob(null);
+                    }}
                     className="text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer border flex items-center gap-1.5"
                     style={{
                       background: appliedIds.has(selectedJob.id) ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.04)",

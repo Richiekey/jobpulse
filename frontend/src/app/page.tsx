@@ -5,11 +5,17 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import LocationFilterPopover, { LocationFilterState } from "@/components/LocationFilterPopover";
 import JobFunctionFilterPopover from "@/components/JobFunctionFilterPopover";
+import CvGeneratorModal from "@/components/CvGeneratorModal";
+import CoverLetterModal from "@/components/CoverLetterModal";
+import JobQaModal from "@/components/JobQaModal";
+import ScreenshotProofModal from "@/components/ScreenshotProofModal";
+import { identifyAtsPlatform, resolveDirectApplyUrl } from "@/lib/jobUrls";
+import { ResumeData } from "@/lib/pdfGenerator";
 import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
   Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
   Bookmark, BookmarkCheck, CheckCircle2, ThumbsDown, Eye, EyeOff,
-  Filter, Tag, Sparkles, RotateCcw, ChevronDown, Globe, 
+  Filter, Tag, Sparkles, RotateCcw, ChevronDown, Globe, Mail, MessageSquare, Camera,
   Code, Server, Monitor, BrainCircuit, LineChart, ShieldAlert, AlertCircle
 } from "lucide-react";
 
@@ -171,6 +177,7 @@ function SkeletonCard() {
 function JobModal({
   job, onClose, appliedSet, hiddenSet, savedSet,
   onToggleApplied, onToggleHidden, onToggleSaved,
+  onOpenCv, onOpenCoverLetter, onOpenQa, onOpenProof,
 }: {
   job: Job;
   onClose: () => void;
@@ -180,6 +187,10 @@ function JobModal({
   onToggleApplied: (id: string) => void;
   onToggleHidden: (id: string) => void;
   onToggleSaved: (id: string) => void;
+  onOpenCv?: (job: Job) => void;
+  onOpenCoverLetter?: (job: Job) => void;
+  onOpenQa?: (job: Job) => void;
+  onOpenProof?: (job: Job) => void;
 }) {
   const isApplied = appliedSet.has(job.id);
   const isHidden = hiddenSet.has(job.id);
@@ -207,7 +218,7 @@ function JobModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--bg-card)", border: "1px solid var(--border-medium)",
-          borderRadius: 20, width: "100%", maxWidth: 720,
+          borderRadius: 20, width: "100%", maxWidth: 780,
           maxHeight: "85vh", overflow: "auto",
           animation: "fadeInUp 0.25s ease-out",
         }}
@@ -292,42 +303,112 @@ function JobModal({
           </div>
         )}
 
+        {/* AI Action Strip */}
+        <div style={{
+          margin: "0 28px 16px",
+          padding: "12px 16px",
+          borderRadius: 14,
+          background: "linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.08) 100%)",
+          border: "1px solid rgba(168, 85, 247, 0.25)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 10,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Sparkles size={16} style={{ color: "#c084fc" }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc" }}>
+              AI Application Copilot
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {onOpenCv && (
+              <button
+                type="button"
+                onClick={() => onOpenCv(job)}
+                style={{
+                  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  boxShadow: "0 2px 10px rgba(99, 102, 241, 0.35)",
+                }}
+              >
+                <Sparkles size={13} />
+                Tailor CV (AI)
+              </button>
+            )}
+            {onOpenCoverLetter && (
+              <button
+                type="button"
+                onClick={() => onOpenCoverLetter(job)}
+                style={{
+                  background: "rgba(168, 85, 247, 0.15)",
+                  color: "#d8b4fe",
+                  border: "1px solid rgba(168, 85, 247, 0.3)",
+                  borderRadius: 8,
+                  padding: "6px 12px",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <Mail size={13} />
+                Cover Letter
+              </button>
+            )}
+            {onOpenQa && (
+              <button
+                type="button"
+                onClick={() => onOpenQa(job)}
+                style={{
+                  background: "rgba(59, 130, 246, 0.15)",
+                  color: "#93c5fd",
+                  border: "1px solid rgba(59, 130, 246, 0.3)",
+                  borderRadius: 8,
+                  padding: "6px 12px",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <MessageSquare size={13} />
+                Q&A Assistant
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Links Box */}
         {(() => {
+          const directResolved = resolveDirectApplyUrl(job.apply_url || job.job_url, job.description);
+          const atsInfo = identifyAtsPlatform(directResolved || job.apply_url || job.job_url);
           const isJobright = job.source === "JOBRIGHT";
-          const hasDistinctAts = job.apply_url && job.job_url && job.apply_url !== job.job_url && !job.apply_url.includes("jobright.ai");
+          const hasDistinctAts = directResolved && !directResolved.includes("jobright.ai");
 
-          let atsName = "Company Site";
-          const linkToCheck = job.apply_url || job.job_url || "";
-          if (job.source === "GREENHOUSE" || linkToCheck.includes("greenhouse.io")) {
-            atsName = "Greenhouse";
-          } else if (job.source === "ASHBY" || linkToCheck.includes("ashbyhq.com")) {
-            atsName = "Ashby";
-          } else if (job.source === "WORKDAY" || linkToCheck.includes("myworkdayjobs.com")) {
-            atsName = "Workday";
-          } else if (job.source === "LEVER" || linkToCheck.includes("lever.co")) {
-            atsName = "Lever";
-          } else if (job.source === "WORKABLE" || linkToCheck.includes("workable.com")) {
-            atsName = "Workable";
-          } else if (job.source === "APPLYTOJOB" || linkToCheck.includes("applytojob.com")) {
-            atsName = "JazzHR";
-          } else if (job.source === "ICIMS" || linkToCheck.includes("icims.com")) {
-            atsName = "iCIMS";
-          } else if (job.source === "JOBVITE" || linkToCheck.includes("jobvite.com")) {
-            atsName = "Jobvite";
-          }
-
-          const primaryApplyUrl = hasDistinctAts ? job.apply_url : (job.apply_url || job.job_url);
-          const primaryButtonText = hasDistinctAts 
-            ? `Apply on ${atsName}` 
-            : (isJobright ? "Apply on Jobright" : `Apply on ${atsName}`);
+          const primaryApplyUrl = directResolved || job.apply_url || job.job_url;
+          const primaryButtonText = `Apply on ${atsInfo.label}`;
 
           return (
             <>
-              <div style={{ margin: "16px 28px 0", padding: "14px 18px", borderRadius: 12, background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ margin: "0 28px 0", padding: "14px 18px", borderRadius: 12, background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: 12 }}>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
-                    {hasDistinctAts ? `Direct ATS Application Link (${atsName})` : (isJobright ? "Job Application Link (via Jobright)" : `${atsName} Application Link`)}
+                    {hasDistinctAts ? `Direct Application Link (${atsInfo.label})` : (isJobright ? "Job Application Link (via Jobright)" : `${atsInfo.label} Application Link`)}
                   </div>
                   <a
                     href={primaryApplyUrl}
@@ -400,21 +481,29 @@ function JobModal({
                     {primaryButtonText} <ExternalLink size={13} />
                   </a>
 
-                  {hasDistinctAts && isJobright && job.job_url && (
-                    <a
-                      href={job.job_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {onOpenProof && (
+                    <button
+                      type="button"
                       className="btn-secondary"
-                      style={{ padding: "8px 14px", fontSize: 13, color: "#60a5fa", borderColor: "rgba(96,165,250,0.3)" }}
+                      onClick={() => onOpenProof(job)}
+                      style={{
+                        padding: "8px 14px",
+                        fontSize: 13,
+                        borderColor: "rgba(16, 185, 129, 0.35)",
+                        color: "#34d399",
+                      }}
+                      title="Upload submission screenshot proof"
                     >
-                      Jobright <ExternalLink size={12} />
-                    </a>
+                      <Camera size={14} /> Add Proof / Screenshot
+                    </button>
                   )}
 
                   <button
                     className={isApplied ? "btn-primary" : "btn-secondary"}
-                    onClick={() => onToggleApplied(job.id)}
+                    onClick={() => {
+                      onToggleApplied(job.id);
+                      onClose();
+                    }}
                     style={{
                       padding: "8px 14px",
                       fontSize: 13,
@@ -428,7 +517,10 @@ function JobModal({
 
                   <button
                     className="btn-secondary"
-                    onClick={() => onToggleHidden(job.id)}
+                    onClick={() => {
+                      onToggleHidden(job.id);
+                      onClose();
+                    }}
                     style={{
                       padding: "8px 14px",
                       fontSize: 13,
@@ -486,6 +578,13 @@ export default function JobsDashboard() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [fullJobData, setFullJobData] = useState<Job | null>(null);
 
+  // AI Copilot & Proof Modals
+  const [cvModalJob, setCvModalJob] = useState<Job | null>(null);
+  const [coverLetterJob, setCoverLetterJob] = useState<Job | null>(null);
+  const [activeTailoredResume, setActiveTailoredResume] = useState<ResumeData | null>(null);
+  const [qaModalJob, setQaModalJob] = useState<Job | null>(null);
+  const [proofModalJob, setProofModalJob] = useState<Job | null>(null);
+
   // Auth context for Google Sheets sync & user tracking
   const { user, profile, syncAppliedJobToSheet } = useAuth();
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "warning" } | null>(null);
@@ -499,6 +598,7 @@ export default function JobsDashboard() {
   const [appliedSet, setAppliedSet] = useState<Set<string>>(new Set());
   const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
+  const [uploadingJobIds, setUploadingJobIds] = useState<Set<string>>(new Set());
   const [showApplied, setShowApplied] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -513,15 +613,29 @@ export default function JobsDashboard() {
   const toggleApplied = async (id: string) => {
     const isNowApplied = !appliedSet.has(id);
 
-    setAppliedSet((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      saveStoredSet("jp_applied", next);
-      return next;
-    });
+    if (!isNowApplied) {
+      // Unmark applied
+      setAppliedSet((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        saveStoredSet("jp_applied", next);
+        return next;
+      });
+      setHiddenSet((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        saveStoredSet("jp_hidden", next);
+        return next;
+      });
+      showToast("Unmarked application", "info");
+      return;
+    }
+
+    // Set uploading state for visible spinner feedback
+    setUploadingJobIds((prev) => new Set(prev).add(id));
 
     // If marked as applied and user is logged in, auto-sync to Google Sheet & cloud applications
-    if (isNowApplied) {
+    try {
       const targetJob = jobs.find((j) => j.id === id) || (fullJobData?.id === id ? fullJobData : selectedJob);
       if (targetJob && syncAppliedJobToSheet) {
         const result = await syncAppliedJobToSheet({
@@ -535,8 +649,24 @@ export default function JobsDashboard() {
           source: targetJob.source,
         });
 
+        // Add to appliedSet
+        setAppliedSet((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          saveStoredSet("jp_applied", next);
+          return next;
+        });
+
+        // Automatically hide the card from the active feed
+        setHiddenSet((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          saveStoredSet("jp_hidden", next);
+          return next;
+        });
+
         if (result.success) {
-          showToast(`Marked as applied & synced to Google Sheet! 📊`, "success");
+          showToast(`Applied & synced to Google Sheets! 📊`, "success");
         } else if (!user) {
           showToast(`Marked as applied. Sign in on /profile to auto-sync to Google Sheet.`, "info");
         } else if (!profile?.google_sheet_webhook && typeof window !== "undefined" && !localStorage.getItem("jp_gsheet_webhook")) {
@@ -545,10 +675,26 @@ export default function JobsDashboard() {
           showToast(`Marked as applied (${result.message})`, "warning");
         }
       } else {
+        setAppliedSet((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          saveStoredSet("jp_applied", next);
+          return next;
+        });
+        setHiddenSet((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          saveStoredSet("jp_hidden", next);
+          return next;
+        });
         showToast("Marked as applied ✓", "success");
       }
-    } else {
-      showToast("Unmarked application", "info");
+    } finally {
+      setUploadingJobIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -1187,6 +1333,7 @@ export default function JobsDashboard() {
               const isSaved = savedSet.has(job.id);
               const isApplied = appliedSet.has(job.id);
               const isHidden = hiddenSet.has(job.id);
+              const isUploading = uploadingJobIds.has(job.id);
 
               return (
                 <div
@@ -1268,12 +1415,12 @@ export default function JobsDashboard() {
                     </span>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); toggleApplied(job.id); }}
+                        onClick={(e) => { e.stopPropagation(); setCvModalJob(job); }}
                         style={{
-                          background: isApplied ? "var(--success-soft)" : "rgba(255,255,255,0.04)",
-                          color: isApplied ? "var(--success)" : "var(--text-muted)",
-                          border: `1px solid ${isApplied ? "rgba(52,211,153,0.3)" : "var(--border-subtle)"}`,
-                          padding: "4px 8px",
+                          background: "linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%)",
+                          color: "#c084fc",
+                          border: "1px solid rgba(168, 85, 247, 0.3)",
+                          padding: "4px 9px",
                           borderRadius: 8,
                           fontSize: 11,
                           fontWeight: 600,
@@ -1283,10 +1430,50 @@ export default function JobsDashboard() {
                           gap: 4,
                           transition: "all 0.15s",
                         }}
-                        title={isApplied ? "Marked as Applied" : "Mark as Applied"}
+                        title="Generate AI Tailored CV & ATS Score"
                       >
-                        <CheckCircle2 size={13} />
-                        {isApplied ? "Applied" : "Apply"}
+                        <Sparkles size={12} />
+                        Tailor CV
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleApplied(job.id); }}
+                        disabled={isUploading}
+                        style={{
+                          background: isUploading 
+                            ? "rgba(99, 102, 241, 0.2)" 
+                            : isApplied 
+                            ? "var(--success-soft)" 
+                            : "rgba(255,255,255,0.04)",
+                          color: isUploading 
+                            ? "#a5b4fc" 
+                            : isApplied 
+                            ? "var(--success)" 
+                            : "var(--text-muted)",
+                          border: `1px solid ${
+                            isUploading 
+                              ? "rgba(99, 102, 241, 0.4)" 
+                              : isApplied 
+                              ? "rgba(52,211,153,0.3)" 
+                              : "var(--border-subtle)"
+                          }`,
+                          padding: "4px 8px",
+                          borderRadius: 8,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: isUploading ? "wait" : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          transition: "all 0.15s",
+                        }}
+                        title={isUploading ? "Syncing to Google Sheet..." : isApplied ? "Marked as Applied" : "Mark as Applied"}
+                      >
+                        {isUploading ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={13} />
+                        )}
+                        {isUploading ? "Syncing..." : isApplied ? "Applied" : "Apply"}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleSaved(job.id); }}
@@ -1418,8 +1605,65 @@ export default function JobsDashboard() {
           onToggleApplied={toggleApplied}
           onToggleHidden={toggleHidden}
           onToggleSaved={toggleSaved}
+          onOpenCv={(j) => setCvModalJob(j)}
+          onOpenCoverLetter={(j) => setCoverLetterJob(j)}
+          onOpenQa={(j) => setQaModalJob(j)}
+          onOpenProof={(j) => setProofModalJob(j)}
         />
       )}
+
+      {/* ── AI CV Generator Modal ──────────────────── */}
+      <CvGeneratorModal
+        isOpen={!!cvModalJob}
+        onClose={() => setCvModalJob(null)}
+        job={cvModalJob}
+        userProfile={profile}
+        onOpenCoverLetter={(j, resData) => {
+          setActiveTailoredResume(resData);
+          setCvModalJob(null);
+          setCoverLetterJob(j);
+        }}
+        onOpenQaAssistant={(j, resData) => {
+          setActiveTailoredResume(resData);
+          setCvModalJob(null);
+          setQaModalJob(j);
+        }}
+      />
+
+      {/* ── AI Cover Letter Modal ──────────────────── */}
+      <CoverLetterModal
+        isOpen={!!coverLetterJob}
+        onClose={() => setCoverLetterJob(null)}
+        job={coverLetterJob}
+        tailoredResume={activeTailoredResume}
+        userProfile={profile}
+      />
+
+      {/* ── AI Screening Q&A Modal ──────────────────── */}
+      <JobQaModal
+        isOpen={!!qaModalJob}
+        onClose={() => setQaModalJob(null)}
+        job={qaModalJob}
+        tailoredResume={activeTailoredResume}
+        userProfile={profile}
+      />
+
+      {/* ── Screenshot & Proof Modal ──────────────────── */}
+      <ScreenshotProofModal
+        isOpen={!!proofModalJob}
+        onClose={() => setProofModalJob(null)}
+        job={proofModalJob}
+        userProfile={profile}
+        onAppliedSuccess={(jobId) => {
+          setAppliedSet((prev) => {
+            const next = new Set(prev);
+            next.add(jobId);
+            saveStoredSet("jp_applied", next);
+            return next;
+          });
+          showToast("Proof saved & application logged!", "success");
+        }}
+      />
 
       {/* Floating Toast Notification */}
       {toast && (

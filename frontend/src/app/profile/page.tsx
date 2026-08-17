@@ -9,7 +9,7 @@ import {
   HelpCircle, ChevronDown, ChevronUp, Zap, Send
 } from "lucide-react";
 
-const APPS_SCRIPT_TEMPLATE = `// ── Optional: Paste your Google Drive Resumes Folder ID below (or leave as "" to search your entire Drive)
+const APPS_SCRIPT_TEMPLATE = `// ── Optional: Paste your Google Drive Resumes & Proof Folder ID below (or leave as "" to auto-create)
 var RESUME_FOLDER_ID = ""; // e.g. "1a2b3c4d5e6f7g8h9i0j..." from your Google Drive folder link
 
 function doPost(e) {
@@ -28,26 +28,55 @@ function doPost(e) {
         "Job URL",
         "Tailored Resume (Google Drive)",
         "Cover Letter (Google Drive)",
+        "Screenshot / Proof (Drive)",
+        "Notes",
         "Status"
       ]);
-      sheet.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#eef2ff");
+      sheet.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#eef2ff");
       sheet.setFrozenRows(1);
     }
     
     var data = JSON.parse(e.postData.contents);
     var companyName = data.company || "";
     
+    // ── Search or Create Google Drive Folder ──
+    var folder = null;
+    try {
+      if (RESUME_FOLDER_ID && RESUME_FOLDER_ID.trim() !== "") {
+        folder = DriveApp.getFolderById(RESUME_FOLDER_ID.trim());
+      } else {
+        var folders = DriveApp.getFoldersByName("JobPulse_Applications");
+        if (folders.hasNext()) {
+          folder = folders.next();
+        } else {
+          folder = DriveApp.createFolder("JobPulse_Applications");
+        }
+      }
+    } catch(fErr) {
+      Logger.log("Folder access: " + fErr.toString());
+    }
+    
+    // ── Save Screenshot Proof to Google Drive ──
+    var screenshotUrl = "";
+    if (data.screenshotBase64 && folder) {
+      try {
+        var base64Data = data.screenshotBase64.replace(/^data:image\\/[a-z]+;base64,/, "");
+        var decoded = Utilities.base64Decode(base64Data);
+        var fileName = data.screenshotFileName || (companyName.replace(/[^a-zA-Z0-9]/g, "_") + "_Proof_" + new Date().getTime() + ".png");
+        var blob = Utilities.newBlob(decoded, "image/png", fileName);
+        var file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        screenshotUrl = file.getUrl();
+      } catch(imgErr) {
+        Logger.log("Screenshot save error: " + imgErr.toString());
+      }
+    }
+
     // ── Search Google Drive for matching Tailored Resume / Cover Letter PDF ──
     var resumeLink = "";
     var coverLetterLink = "";
     
     try {
-      var folder = null;
-      if (RESUME_FOLDER_ID && RESUME_FOLDER_ID.trim() !== "") {
-        folder = DriveApp.getFolderById(RESUME_FOLDER_ID.trim());
-      }
-      
-      // Clean company keyword for fuzzy matching
       var cleanComp = companyName.replace(/[^a-zA-Z0-9]/g, " ").trim();
       var firstWord = cleanComp.split(" ")[0] || cleanComp;
       
@@ -57,21 +86,20 @@ function doPost(e) {
       
       if (searchFiles) {
         while (searchFiles.hasNext()) {
-          var file = searchFiles.next();
-          var fileName = file.getName().toLowerCase();
+          var f = searchFiles.next();
+          var fName = f.getName().toLowerCase();
           var compLower = firstWord.toLowerCase();
           
-          if (fileName.indexOf(compLower) !== -1 || (folder && !resumeLink)) {
-            if (fileName.indexOf("cover") !== -1 || fileName.indexOf("cl") !== -1) {
-              if (!coverLetterLink) coverLetterLink = file.getUrl();
+          if (fName.indexOf(compLower) !== -1 || (folder && !resumeLink)) {
+            if (fName.indexOf("cover") !== -1 || fName.indexOf("cl") !== -1) {
+              if (!coverLetterLink) coverLetterLink = f.getUrl();
             } else {
-              if (!resumeLink) resumeLink = file.getUrl();
+              if (!resumeLink) resumeLink = f.getUrl();
             }
           }
         }
       }
       
-      // Fallback: If folder is provided and no specific match found, link the folder
       if (!resumeLink && folder) {
         resumeLink = folder.getUrl();
       }
@@ -89,11 +117,14 @@ function doPost(e) {
       data.link || "N/A",
       resumeLink || (data.resumeUrl || "N/A"),
       coverLetterLink || "N/A",
+      screenshotUrl || "N/A",
+      data.notes || "",
       data.status || "Applied"
     ]);
 
     return ContentService.createTextOutput(JSON.stringify({
       result: "success",
+      screenshotUrl: screenshotUrl,
       resumeFound: !!resumeLink,
       coverLetterFound: !!coverLetterLink
     })).setMimeType(ContentService.MimeType.JSON);

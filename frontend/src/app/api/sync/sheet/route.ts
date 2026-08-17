@@ -16,9 +16,13 @@ export async function POST(req: NextRequest) {
       location,
       salary,
       source,
+      notes,
+      screenshotBase64,
+      screenshotFileName,
       webhookUrl,
       autoSync = true,
       isTest = false,
+      status = 'Applied',
     } = body;
 
     if (!isTest && (!userId || !companyName || !jobTitle)) {
@@ -30,6 +34,7 @@ export async function POST(req: NextRequest) {
 
     let sheetSyncSuccess = false;
     let sheetSyncError = '';
+    let driveScreenshotUrl = '';
 
     // Auto-resolve webhook URL from user profile if not passed in payload
     let resolvedWebhook = webhookUrl;
@@ -63,14 +68,23 @@ export async function POST(req: NextRequest) {
       try {
         const payload = {
           timestamp: new Date().toISOString(),
-          dateFormatted: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          dateFormatted: new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
           company: companyName || 'Test Company',
           title: jobTitle || 'Test Role',
           location: location || 'Remote / Unspecified',
           salary: salary || 'N/A',
           source: source || 'JobPulse',
           link: jobUrl || 'https://jobpulse.app',
-          status: 'Applied',
+          status: status || 'Applied',
+          notes: notes || '',
+          screenshotBase64: screenshotBase64 || '',
+          screenshotFileName: screenshotFileName || '',
           isTest: !!isTest,
         };
 
@@ -86,6 +100,14 @@ export async function POST(req: NextRequest) {
 
           if (sheetRes.ok) {
             sheetSyncSuccess = true;
+            try {
+              const resJson = await sheetRes.json();
+              if (resJson?.screenshotUrl) {
+                driveScreenshotUrl = resJson.screenshotUrl;
+              }
+            } catch {
+              // Ignore non-json response
+            }
           } else if (sheetRes.status === 401 || sheetRes.status === 403) {
             sheetSyncError = 'Google Sheet returned status 401/403 (Unauthorized). In Google Apps Script, click "Deploy > Manage deployments > Edit", set "Who has access" to "Anyone", and click Deploy.';
           } else if (sheetRes.status === 404) {
@@ -119,12 +141,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Persist application record in Supabase user_applications
     try {
-      await supabaseFetch('user_applications', {}, {
-        'Prefer': 'resolution=merge-duplicates,return=representation',
-      });
-
-      // Post the application record
-      const appRecord = {
+      const appRecord: any = {
         user_id: userId,
         job_id: jobId || null,
         company_name: companyName,
@@ -161,8 +178,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       syncedToSheet: sheetSyncSuccess,
+      screenshotDriveUrl: driveScreenshotUrl || undefined,
       message: sheetSyncSuccess
-        ? 'Application logged and synced to Google Sheet!'
+        ? 'Application logged and synced to Google Sheet with Drive proof!'
         : 'Application logged to your account.',
       syncError: sheetSyncError || undefined,
     });

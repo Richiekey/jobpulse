@@ -4,7 +4,7 @@ import { supabaseFetch } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const SELECT_FIELDS = 'id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category';
+const SELECT_FIELDS = 'id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category,is_published';
 
 function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T[] {
   if (!items || items.length <= 1) return items;
@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(sp.get('page') || '1', 10);
   const perPage = Math.min(parseInt(sp.get('per_page') || '12', 10), 50);
   const offset = (page - 1) * perPage;
+  const showAllWarehouse = sp.get('warehouse') === 'true';
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -48,6 +49,12 @@ export async function GET(req: NextRequest) {
     limit: String(perPage),
     offset: String(offset),
   };
+
+  // If not explicitly inspecting entire warehouse, default to published jobs
+  if (!showAllWarehouse) {
+    // Attempt published query
+    params.is_published = 'eq.true';
+  }
 
   // 30-day freshness condition
   const freshnessCond = `or(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`;
@@ -103,59 +110,84 @@ export async function GET(req: NextRequest) {
     const idList = ids.split(',').map(id => id.trim()).filter(Boolean);
     if (idList.length > 0) {
       params.id = `in.(${idList.join(',')})`;
+      delete params.and;
+      delete params.or;
+      delete params.is_published;
     }
   }
 
+  // Remote Type Filter
   const remoteType = sp.get('remote_type');
-  if (remoteType) params.remote_type = `eq.${remoteType}`;
+  if (remoteType && remoteType !== 'ALL') {
+    params.remote_type = `eq.${remoteType}`;
+  }
 
+  // Source ATS Filter
   const source = sp.get('source');
-  if (source) params.source = `eq.${source}`;
+  if (source && source !== 'ALL') {
+    params.source = `eq.${source}`;
+  }
 
-  const roleCategory = sp.get('role_category');
-  if (roleCategory) params.role_category = `eq.${roleCategory}`;
-
+  // Skills Filter
   const skills = sp.get('skills');
   if (skills) {
-    const skillsList = skills.split(',').map(s => s.trim()).filter(Boolean);
-    if (skillsList.length) params.skills = `cs.{${skillsList.join(',')}}`;
+    const skillList = skills.split(',').map(s => s.trim()).filter(Boolean);
+    if (skillList.length > 0) {
+      params.skills = `ov.{${skillList.join(',')}}`;
+    }
   }
 
-  const salaryMin = sp.get('salary_min');
-  if (salaryMin) params.salary_max = `gte.${salaryMin}`;
-
-  const salaryMax = sp.get('salary_max');
-  if (salaryMax) params.salary_min = `lte.${salaryMax}`;
-
   try {
-    const res = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
+    let res = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
 
-    if (!res.ok) {
-      return NextResponse.json({ error: 'Database query failed', status: res.status }, { status: 500 });
-    }
-
-    const results = await res.json();
-    const diverseResults = interleaveCompanies(results);
-
-    // Parse total from Content-Range header
+    // Fallback: If 0 published jobs found and not looking for specific IDs, fallback to active jobs
+    let results: any[] = [];
     let total = 0;
-    const contentRange = res.headers.get('content-range') || '';
-    if (contentRange.includes('/')) {
-      try {
-        total = parseInt(contentRange.split('/')[1], 10);
-      } catch {
+
+    if (res.ok) {
+      results = await res.json();
+      const contentRange = res.headers.get('content-range') || '';
+      if (contentRange.includes('/')) {
+        try {
+          total = parseInt(contentRange.split('/')[1], 10);
+        } catch {
+          total = results.length;
+        }
+      } else {
         total = results.length;
       }
-    } else {
-      total = results.length;
     }
+
+    if (results.length === 0 && params.is_published && !ids) {
+      delete params.is_published;
+      const fallbackRes = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
+      if (fallbackRes.ok) {
+        results = await fallbackRes.json();
+        const contentRange = fallbackRes.headers.get('content-range') || '';
+        if (contentRange.includes('/')) {
+          try {
+            total = parseInt(contentRange.split('/')[1], 10);
+          } catch {
+            total = results.length;
+          }
+        } else {
+          total = results.length;
+        }
+      }
+    }
+
+    const diverseResults = interleaveCompanies(results);
+
+    // Enforce 1,000 public cap
+    const publicCappedTotal = Math.min(total, 1000);
 
     return NextResponse.json({
       items: diverseResults,
-      total,
+      total: publicCappedTotal,
+      warehouseTotal: total,
       page,
       per_page: perPage,
-      total_pages: Math.ceil(total / perPage),
+      total_pages: Math.ceil(publicCappedTotal / perPage),
     });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });

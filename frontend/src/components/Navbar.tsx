@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { User, LogIn, FileText, Table, LogOut, ChevronDown, Sparkles, Bookmark } from "lucide-react";
+import { User, LogIn, FileText, Table, LogOut, ChevronDown, Sparkles, Bookmark, ShieldCheck } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -73,6 +73,10 @@ export function Navbar() {
             <Link href="/saved" className={`nav-link ${pathname === "/saved" ? "active" : ""}`}>
               <Bookmark size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />
               Saved
+            </Link>
+            <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`} style={{ color: pathname === "/admin" ? "#ffffff" : "#c084fc" }}>
+              <ShieldCheck size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />
+              Admin
             </Link>
             <Link href="/import" className={`nav-link ${pathname === "/import" ? "active" : ""}`}>
               Import
