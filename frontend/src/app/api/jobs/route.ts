@@ -4,12 +4,11 @@ import { supabaseFetch } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const SELECT_FIELDS = 'id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category,is_published';
+const SELECT_FIELDS = 'id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category';
 
 function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T[] {
   if (!items || items.length <= 1) return items;
 
-  // Group items by company_name
   const companyBuckets = new Map<string, T[]>();
   for (const item of items) {
     const key = (item.company_name || 'Unknown').trim().toLowerCase();
@@ -19,7 +18,6 @@ function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T
     companyBuckets.get(key)!.push(item);
   }
 
-  // Interleave round-robin so jobs from the same company are distributed evenly
   const result: T[] = [];
   let remaining = items.length;
   while (remaining > 0) {
@@ -39,7 +37,6 @@ export async function GET(req: NextRequest) {
   const page = parseInt(sp.get('page') || '1', 10);
   const perPage = Math.min(parseInt(sp.get('per_page') || '12', 10), 50);
   const offset = (page - 1) * perPage;
-  const showAllWarehouse = sp.get('warehouse') === 'true';
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -49,12 +46,6 @@ export async function GET(req: NextRequest) {
     limit: String(perPage),
     offset: String(offset),
   };
-
-  // If not explicitly inspecting entire warehouse, default to published jobs
-  if (!showAllWarehouse) {
-    // Attempt published query
-    params.is_published = 'eq.true';
-  }
 
   // 30-day freshness condition
   const freshnessCond = `or(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`;
@@ -112,7 +103,6 @@ export async function GET(req: NextRequest) {
       params.id = `in.(${idList.join(',')})`;
       delete params.and;
       delete params.or;
-      delete params.is_published;
     }
   }
 
@@ -140,7 +130,6 @@ export async function GET(req: NextRequest) {
   try {
     let res = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
 
-    // Fallback: If 0 published jobs found and not looking for specific IDs, fallback to active jobs
     let results: any[] = [];
     let total = 0;
 
@@ -156,24 +145,8 @@ export async function GET(req: NextRequest) {
       } else {
         total = results.length;
       }
-    }
-
-    if (results.length === 0 && params.is_published && !ids) {
-      delete params.is_published;
-      const fallbackRes = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
-      if (fallbackRes.ok) {
-        results = await fallbackRes.json();
-        const contentRange = fallbackRes.headers.get('content-range') || '';
-        if (contentRange.includes('/')) {
-          try {
-            total = parseInt(contentRange.split('/')[1], 10);
-          } catch {
-            total = results.length;
-          }
-        } else {
-          total = results.length;
-        }
-      }
+    } else {
+      console.warn("Supabase query note:", res.status);
     }
 
     const diverseResults = interleaveCompanies(results);
