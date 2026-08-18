@@ -204,6 +204,31 @@ function JobModal({
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
+  // ── Auto-resolve direct ATS URL for Jobright jobs ──
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+
+  useEffect(() => {
+    const applyUrl = job.apply_url || job.job_url || "";
+    if (job.source === "JOBRIGHT" && applyUrl.includes("jobright.ai")) {
+      setResolving(true);
+      fetch("/api/jobs/resolve-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: job.id, jobrightUrl: applyUrl }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.directUrl && !data.directUrl.includes("jobright.ai")) {
+            setResolvedUrl(data.directUrl);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setResolving(false));
+    }
+    return () => { setResolvedUrl(null); setResolving(false); };
+  }, [job.id, job.source, job.apply_url, job.job_url]);
+
   const freshness = freshnessColor(job.posted_at || job.created_at);
 
   return (
@@ -398,32 +423,61 @@ function JobModal({
 
         {/* Links Box */}
         {(() => {
-          const directResolved = resolveDirectApplyUrl(job.apply_url || job.job_url, job.description);
-          const atsInfo = identifyAtsPlatform(directResolved || job.apply_url || job.job_url);
+          const staticResolved = resolveDirectApplyUrl(job.apply_url || job.job_url, job.description);
+          const effectiveUrl = resolvedUrl || (staticResolved && !staticResolved.includes("jobright.ai") ? staticResolved : null);
+          const atsInfo = identifyAtsPlatform(effectiveUrl || job.apply_url || job.job_url);
           const isJobright = job.source === "JOBRIGHT";
-          const hasDistinctAts = directResolved && !directResolved.includes("jobright.ai");
+          const hasDirectUrl = !!effectiveUrl;
 
-          const primaryApplyUrl = directResolved || job.apply_url || job.job_url;
-          const primaryButtonText = `Apply on ${atsInfo.label}`;
+          const primaryApplyUrl = effectiveUrl || job.apply_url || job.job_url;
 
           return (
             <>
               <div style={{ margin: "0 28px 0", padding: "14px 18px", borderRadius: 12, background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
-                    {hasDistinctAts ? `Direct Application Link (${atsInfo.label})` : (isJobright ? "Job Application Link (via Jobright)" : `${atsInfo.label} Application Link`)}
+                {/* Direct ATS link (resolved or static) */}
+                {hasDirectUrl && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#34d399", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                      ✓ Direct Application Link ({atsInfo.label})
+                    </div>
+                    <a
+                      href={effectiveUrl!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 13, color: "var(--accent-glow)", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
+                    >
+                      {effectiveUrl} <ExternalLink size={12} />
+                    </a>
                   </div>
-                  <a
-                    href={primaryApplyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: 13, color: "var(--accent-glow)", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
-                  >
-                    {primaryApplyUrl} <ExternalLink size={12} />
-                  </a>
-                </div>
+                )}
 
-                {hasDistinctAts && isJobright && job.job_url && (
+                {/* Resolving indicator */}
+                {resolving && !hasDirectUrl && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-muted)" }}>
+                    <div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.1)", borderTopColor: "var(--accent-glow)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    Resolving direct application link...
+                  </div>
+                )}
+
+                {/* Fallback: original URL if no direct found */}
+                {!hasDirectUrl && !resolving && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
+                      {isJobright ? "Job Application Link (via Jobright)" : `${atsInfo.label} Application Link`}
+                    </div>
+                    <a
+                      href={primaryApplyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 13, color: "var(--accent-glow)", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
+                    >
+                      {primaryApplyUrl} <ExternalLink size={12} />
+                    </a>
+                  </div>
+                )}
+
+                {/* Show Jobright listing link when we have a direct URL */}
+                {hasDirectUrl && isJobright && job.job_url && (
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
                       Jobright Listing
@@ -479,9 +533,9 @@ function JobModal({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-primary"
-                    style={{ padding: "8px 18px", fontSize: 13, background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
+                    style={{ padding: "8px 18px", fontSize: 13, background: hasDirectUrl ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #3b82f6, #6366f1)" }}
                   >
-                    {primaryButtonText} <ExternalLink size={13} />
+                    {hasDirectUrl ? `Apply on ${atsInfo.label}` : `Apply on ${atsInfo.label}`} <ExternalLink size={13} />
                   </a>
 
                   {onOpenProof && (
