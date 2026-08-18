@@ -128,10 +128,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    let res = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
+    // Try fetching with is_published filter first (preferred after migration)
+    const publishedParams = { ...params, is_published: 'eq.true' };
+    let res = await supabaseFetch('jobs', publishedParams, { Prefer: 'count=exact' });
 
+    // If is_published column doesn't exist (42703) or returns 0 results, fall back to all active
     let results: any[] = [];
     let total = 0;
+    let usedPublishFilter = true;
 
     if (res.ok) {
       results = await res.json();
@@ -145,8 +149,27 @@ export async function GET(req: NextRequest) {
       } else {
         total = results.length;
       }
-    } else {
-      console.warn("Supabase query note:", res.status);
+    }
+
+    // Fallback: if no published jobs found or column error, fetch all active jobs
+    if (!res.ok || total === 0) {
+      usedPublishFilter = false;
+      res = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
+      if (res.ok) {
+        results = await res.json();
+        const contentRange = res.headers.get('content-range') || '';
+        if (contentRange.includes('/')) {
+          try {
+            total = parseInt(contentRange.split('/')[1], 10);
+          } catch {
+            total = results.length;
+          }
+        } else {
+          total = results.length;
+        }
+      } else {
+        console.warn("Supabase query note:", res.status);
+      }
     }
 
     const diverseResults = interleaveCompanies(results);
@@ -166,3 +189,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
   }
 }
+

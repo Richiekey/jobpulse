@@ -8,6 +8,7 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
+  role?: string;
   headline?: string;
   years_of_experience?: number;
   skills?: string[];
@@ -40,7 +41,7 @@ interface AuthContextType {
   session: Session | null;
   profile: UserProfile | null;
   loading: boolean;
-  signUp: (email: string, pass: string, fullName: string) => Promise<{ error?: string }>;
+  isAdmin: boolean;
   signIn: (email: string, pass: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
@@ -240,6 +241,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isAdmin = profile?.role === "admin";
+
   return (
     <AuthContext.Provider
       value={{
@@ -247,7 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         profile,
         loading,
-        signUp,
+        isAdmin,
         signIn,
         signOut,
         updateProfile,

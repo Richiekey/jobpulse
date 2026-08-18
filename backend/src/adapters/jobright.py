@@ -286,6 +286,48 @@ class JobrightAdapter(BaseAdapter):
         if not salary_info.get("min") and not salary_info.get("max") and description:
             salary_info = parse_salary(description)
 
+        # ── Extract direct ATS apply URL ──
+        # Priority: helper_data fields > json_ld url field > regex from description > fallback to job_url
+        direct_apply_url = None
+
+        # Check helper_data for direct apply URL fields
+        if helper and isinstance(helper, dict):
+            for field in ("applyUrl", "jobApplyUrl", "originalUrl", "externalUrl",
+                          "companyJobUrl", "sourceUrl", "directUrl", "applyLink",
+                          "applicationUrl", "externalApplyUrl"):
+                candidate = helper.get(field)
+                if candidate and isinstance(candidate, str) and "jobright.ai" not in candidate:
+                    direct_apply_url = candidate.strip()
+                    break
+
+        # Check json_ld for direct apply URL
+        if not direct_apply_url and json_ld and isinstance(json_ld, dict):
+            for field in ("url", "sameAs", "applicationContact"):
+                candidate = json_ld.get(field)
+                if candidate and isinstance(candidate, str) and "jobright.ai" not in candidate:
+                    direct_apply_url = candidate.strip()
+                    break
+
+        # Regex-extract known ATS URLs from the description
+        if not direct_apply_url and description:
+            import re
+            ats_patterns = [
+                r'https?://(?:boards\.)?greenhouse\.io/[a-zA-Z0-9_\-\./]+',
+                r'https?://jobs\.ashbyhq\.com/[a-zA-Z0-9_\-\./]+',
+                r'https?://jobs\.lever\.co/[a-zA-Z0-9_\-\./]+',
+                r'https?://[a-zA-Z0-9_\-\.]+\.myworkdayjobs\.com/[a-zA-Z0-9_\-\./]+',
+                r'https?://jobs\.smartrecruiters\.com/[a-zA-Z0-9_\-\./]+',
+                r'https?://[a-zA-Z0-9_\-\.]+\.workable\.com/[a-zA-Z0-9_\-\./]+',
+                r'https?://[a-zA-Z0-9_\-\.]+\.icims\.com/[a-zA-Z0-9_\-\./]+',
+            ]
+            for pattern in ats_patterns:
+                match = re.search(pattern, description, re.IGNORECASE)
+                if match:
+                    direct_apply_url = match.group(0)
+                    break
+
+        apply_url_final = direct_apply_url or job_url
+
         return NormalizedJob(
             source=self.platform,
             source_job_id=job_id,
@@ -305,7 +347,51 @@ class JobrightAdapter(BaseAdapter):
             salary_currency=salary_info.get("currency"),
             salary_period=salary_info.get("period"),
             job_url=job_url,
-            apply_url=job_url,
+            apply_url=apply_url_final,
             posted_at=posted_at,
             status=JobStatus.ACTIVE
         )
+
+    async def discover_and_normalize(self, company_name: str, company_identifier: str) -> List[NormalizedJob]:
+        """
+        Override base: fetches the README table, then enriches each job
+        with detail data from jobright.ai (capped at 50 detail fetches per repo
+        to stay within the GitHub Actions 45-minute timeout).
+        """
+        raw_jobs = await self.fetch_jobs(company_identifier)
+        logger.info("jobright_enriching_details", repo=company_identifier, total=len(raw_jobs), cap=50)
+
+        normalized_list = []
+        detail_fetches = 0
+        MAX_DETAIL_FETCHES = 50
+
+        for raw in raw_jobs:
+            try:
+                # Enrich with detail data if under the cap
+                job_id = raw.get("id")
+                if job_id and detail_fetches < MAX_DETAIL_FETCHES:
+                    detail = await self.fetch_job_details(company_identifier, job_id)
+                    if detail:
+                        # Merge detail data into the raw job dict
+                        if detail.get("helper_data"):
+                            raw["helper_data"] = detail["helper_data"]
+                        if detail.get("company_data"):
+                            raw["company_data"] = detail["company_data"]
+                        if detail.get("json_ld"):
+                            raw["json_ld"] = detail["json_ld"]
+                    detail_fetches += 1
+
+                job = self.normalize(raw, company_name, company_identifier)
+                normalized_list.append(job)
+            except Exception as e:
+                logger.error(
+                    "job_normalization_failed",
+                    platform=self.platform.value,
+                    company=company_name,
+                    job_id=raw.get("id"),
+                    error=str(e)
+                )
+
+        logger.info("jobright_enrichment_complete", repo=company_identifier,
+                     enriched=detail_fetches, total_normalized=len(normalized_list))
+        return normalized_list

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import LocationFilterPopover, { LocationFilterState } from "@/components/LocationFilterPopover";
 import JobFunctionFilterPopover from "@/components/JobFunctionFilterPopover";
+import CustomDropdown from "@/components/CustomDropdown";
 import CvGeneratorModal from "@/components/CvGeneratorModal";
 import CoverLetterModal from "@/components/CoverLetterModal";
 import JobQaModal from "@/components/JobQaModal";
@@ -15,8 +16,9 @@ import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
   Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
   Bookmark, BookmarkCheck, CheckCircle2, ThumbsDown, Eye, EyeOff,
-  Filter, Tag, Sparkles, RotateCcw, ChevronDown, Globe, Mail, MessageSquare, Camera,
-  Code, Server, Monitor, BrainCircuit, LineChart, ShieldAlert, AlertCircle
+  Filter, Tag, Sparkles, RotateCcw, Globe, Mail, MessageSquare, Camera,
+  Code, Server, Monitor, BrainCircuit, LineChart, ShieldAlert, AlertCircle,
+  Wifi, Database
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -207,8 +209,8 @@ function JobModal({
   return (
     <div
       style={{
-        position: "fixed", inset: 0, zIndex: 100,
-        background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
+        position: "fixed", inset: 0, zIndex: 10000,
+        background: "rgba(0,0,0,0.75)", backdropFilter: "blur(12px)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 20,
       }}
@@ -217,10 +219,11 @@ function JobModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "var(--bg-card)", border: "1px solid var(--border-medium)",
+          background: "#111114", border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 20, width: "100%", maxWidth: 780,
           maxHeight: "85vh", overflow: "auto",
           animation: "fadeInUp 0.25s ease-out",
+          boxShadow: "0 32px 80px -20px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)",
         }}
       >
         {/* Header */}
@@ -898,39 +901,35 @@ export default function JobsDashboard() {
   return (
     <div>
       {/* ── Hero Header ────────────────── */}
-      <div className="animate-fade-in-up" style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+      <div className="animate-fade-in-up" style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.04em", margin: 0 }}>
+            <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.04em", margin: 0, lineHeight: 1.1 }}>
               Discover Jobs
             </h1>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 6 }}>
-              <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "var(--accent-glow)" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>
+              <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "var(--text-secondary)", fontFamily: "'JetBrains Mono', monospace" }}>
                 {total.toLocaleString()}
               </span>{" "}
-              positions aggregated across ATS platforms
+              curated positions across ATS platforms
             </p>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <Link
               href="/saved"
-              className="btn-secondary"
+              className="btn-ghost"
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                borderColor: savedSet.size > 0 ? "rgba(99, 102, 241, 0.4)" : "var(--border-subtle)",
-                color: savedSet.size > 0 ? "var(--accent-glow)" : "var(--text-secondary)",
+                color: savedSet.size > 0 ? "var(--accent-glow)" : "var(--text-muted)",
               }}
             >
-              <Bookmark size={14} /> Saved {savedSet.size > 0 && <span style={{ background: "var(--accent-main)", color: "white", borderRadius: 999, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedSet.size}</span>}
+              <Bookmark size={14} /> Saved {savedSet.size > 0 && <span style={{ background: "var(--accent-soft)", color: "var(--accent-glow)", borderRadius: 999, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{savedSet.size}</span>}
             </Link>
-            <button className="btn-secondary" onClick={() => setShowFilters(!showFilters)}>
-              <Filter size={15} /> Filters {selectedSkills.size > 0 && <span style={{ background: "var(--accent-main)", color: "white", borderRadius: 999, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{selectedSkills.size}</span>}
+            <button className="btn-ghost" onClick={() => setShowFilters(!showFilters)}>
+              <Filter size={14} /> Filters {selectedSkills.size > 0 && <span style={{ background: "var(--accent-soft)", color: "var(--accent-glow)", borderRadius: 999, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{selectedSkills.size}</span>}
             </button>
             <button
               type="button"
-              className="btn-secondary cursor-pointer"
+              className="btn-ghost"
               onClick={() => {
                 const params = new URLSearchParams();
                 if (query) params.set("q", query);
@@ -942,29 +941,16 @@ export default function JobsDashboard() {
                 window.open(`${API_BASE}/export/csv?${params.toString()}`, "_blank");
               }}
             >
-              <Download size={15} /> Export CSV
+              <Download size={14} /> Export
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Search & Filter Controls Bar (Linear/Vercel Aesthetic) ─────────────────── */}
+      {/* ── Search & Filter Controls Bar ─────────────────── */}
       <div
-        className="animate-fade-in-up"
-        style={{
-          animationDelay: "60ms",
-          background: "rgba(255, 255, 255, 0.02)",
-          backdropFilter: "blur(24px)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          borderRadius: 20,
-          padding: "12px 14px",
-          marginBottom: 16,
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 20px 40px -15px rgba(0,0,0,0.7)",
-        }}
+        className="search-bar animate-fade-in-up"
+        style={{ animationDelay: "60ms", marginBottom: 16, position: "relative", zIndex: 100 }}
       >
         {/* Search Input */}
         <div style={{ position: "relative", flex: "1 1 260px", minWidth: 220 }}>
@@ -1009,53 +995,57 @@ export default function JobsDashboard() {
           onChange={(fns) => setSelectedFunctions(fns)}
         />
 
-        {/* Remote Type Select */}
-        <div className="relative">
-          <select
-            value={remoteType}
-            onChange={(e) => setRemoteType(e.target.value)}
-            className="h-11 px-3.5 pr-8 rounded-xl text-xs font-medium cursor-pointer border transition-colors select-none appearance-none"
-            style={{
-              background: remoteType ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-              borderColor: remoteType ? "rgba(255, 255, 255, 0.2)" : "transparent",
-              color: remoteType ? "#f4f4f5" : "#a1a1aa",
-            }}
-          >
-            <option value="" className="bg-[#09090b] text-zinc-400">All Remote Types</option>
-            <option value="REMOTE" className="bg-[#09090b] text-zinc-200">Remote Only</option>
-            <option value="HYBRID" className="bg-[#09090b] text-zinc-200">Hybrid</option>
-            <option value="ONSITE" className="bg-[#09090b] text-zinc-200">Onsite Only</option>
-          </select>
-          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
-        </div>
+        {/* Work Type Dropdown */}
+        <CustomDropdown
+          value={remoteType}
+          onChange={(val) => setRemoteType(val)}
+          placeholder="Work Type"
+          icon={Wifi}
+          options={[
+            { value: "", label: "All Work Types" },
+            { value: "REMOTE", label: "Remote" },
+            { value: "HYBRID", label: "Hybrid" },
+            { value: "ONSITE", label: "On-site" },
+          ]}
+        />
 
-        {/* ATS Source Select */}
-        <div className="relative">
-          <select
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            className="h-11 px-3.5 pr-8 rounded-xl text-xs font-medium cursor-pointer border transition-colors select-none appearance-none"
-            style={{
-              background: source ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-              borderColor: source ? "rgba(255, 255, 255, 0.2)" : "transparent",
-              color: source ? "#f4f4f5" : "#a1a1aa",
-            }}
-          >
-            <option value="" className="bg-[#09090b] text-zinc-400">All Sources ({total > 0 && !source ? `${total.toLocaleString()}` : "13.5k+"})</option>
-            <option value="JOBRIGHT" className="bg-[#09090b] text-zinc-200">Jobright (9.7k+)</option>
-            <option value="GREENHOUSE" className="bg-[#09090b] text-zinc-200">Greenhouse (3.3k+)</option>
-            <option value="ASHBY" className="bg-[#09090b] text-zinc-200">Ashby (440+)</option>
-            <option value="WORKDAY" className="bg-[#09090b] text-zinc-200">Workday (29)</option>
-            <option value="LEVER" className="bg-[#09090b] text-zinc-200">Lever (24)</option>
-          </select>
-          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
-        </div>
+        {/* Job Source Dropdown */}
+        <CustomDropdown
+          value={source}
+          onChange={(val) => setSource(val)}
+          placeholder="Job Source"
+          icon={Database}
+          options={[
+            { value: "", label: `All Sources (${total > 0 && !source ? total.toLocaleString() : "13.5k+"})` },
+            { value: "JOBRIGHT", label: "Jobright (9.7k+)" },
+            { value: "GREENHOUSE", label: "Greenhouse (3.3k+)" },
+            { value: "ASHBY", label: "Ashby (440+)" },
+            { value: "WORKDAY", label: "Workday (29)" },
+            { value: "LEVER", label: "Lever (24)" },
+          ]}
+        />
 
         {/* Search Button */}
         <button
           type="button"
           onClick={handleSearch}
-          className="h-11 px-5 rounded-xl text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-white flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
+          style={{
+            height: 44,
+            padding: '0 22px',
+            borderRadius: 12,
+            fontSize: 13,
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            border: 'none',
+            fontFamily: 'inherit',
+            background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+            color: '#fff',
+            boxShadow: '0 2px 12px rgba(99, 102, 241, 0.3)',
+            transition: 'all 0.15s ease',
+          }}
         >
           <Search size={14} />
           <span>Search</span>
@@ -1073,13 +1063,23 @@ export default function JobsDashboard() {
               setSource("");
               setSelectedSkills(new Set());
             }}
-            className="h-11 px-3.5 rounded-xl text-xs font-medium transition-all cursor-pointer border flex items-center gap-1.5"
             style={{
-              background: "transparent",
-              borderColor: "rgba(255, 255, 255, 0.1)",
-              color: "#a1a1aa",
+              height: 44,
+              padding: '0 14px',
+              borderRadius: 12,
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: 'pointer',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: 'inherit',
+              background: 'transparent',
+              color: '#71717a',
+              transition: 'all 0.15s ease',
             }}
-            title="Clear all active search and filter constraints"
+            title="Clear all filters"
           >
             <RotateCcw size={12} />
             <span>Reset</span>
@@ -1088,134 +1088,74 @@ export default function JobsDashboard() {
       </div>
 
       {/* ── Quick Filter Presets Row ─────────────────── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-5 scrollbar-hide text-[11px] animate-fade-in-up" style={{ animationDelay: "90ms" }}>
-        <span className="font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap pl-1 mr-2">
-          Quick Filters
-        </span>
+      {(() => {
+        const pillStyle = (active: boolean) => ({
+          height: 32,
+          padding: "0 14px",
+          borderRadius: 99,
+          fontSize: 12,
+          fontWeight: 500 as const,
+          whiteSpace: "nowrap" as const,
+          cursor: "pointer" as const,
+          border: "1px solid",
+          display: "inline-flex",
+          alignItems: "center" as const,
+          gap: 6,
+          transition: "all 0.15s ease",
+          fontFamily: "inherit",
+          background: active ? "rgba(99, 102, 241, 0.1)" : "rgba(255,255,255,0.03)",
+          borderColor: active ? "rgba(99, 102, 241, 0.2)" : "rgba(255,255,255,0.06)",
+          color: active ? "#c7d2fe" : "#a1a1aa",
+        });
+        const iconColor = (active: boolean) => ({ color: active ? "#a5b4fc" : "#52525b" });
 
-        {/* Remote Preset */}
-        <button
-          type="button"
-          onClick={() => setRemoteType(remoteType === "REMOTE" ? "" : "REMOTE")}
-          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
-          style={{
-            background: remoteType === "REMOTE" ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-            borderColor: remoteType === "REMOTE" ? "rgba(255, 255, 255, 0.2)" : "transparent",
-            color: remoteType === "REMOTE" ? "#f4f4f5" : "#a1a1aa",
-          }}
-        >
-          <Globe size={13} style={{ color: remoteType === "REMOTE" ? "#fff" : "#71717a" }} />
-          Remote Only
-        </button>
+        const toggleFn = (tag: string) => {
+          setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
+        };
 
-        {/* Full Stack Preset */}
-        <button
-          type="button"
-          onClick={() => {
-            const tag = "Full Stack Engineer";
-            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
-          }}
-          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
-          style={{
-            background: selectedFunctions.includes("Full Stack Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-            borderColor: selectedFunctions.includes("Full Stack Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
-            color: selectedFunctions.includes("Full Stack Engineer") ? "#f4f4f5" : "#a1a1aa",
-          }}
-        >
-          <Code size={13} style={{ color: selectedFunctions.includes("Full Stack Engineer") ? "#fff" : "#71717a" }} />
-          Full Stack
-        </button>
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 24 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#3f3f46", textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap", paddingLeft: 2, marginRight: 2 }}>
+              Quick
+            </span>
 
-        {/* Backend Preset */}
-        <button
-          type="button"
-          onClick={() => {
-            const tag = "Backend Engineer";
-            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
-          }}
-          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
-          style={{
-            background: selectedFunctions.includes("Backend Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-            borderColor: selectedFunctions.includes("Backend Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
-            color: selectedFunctions.includes("Backend Engineer") ? "#f4f4f5" : "#a1a1aa",
-          }}
-        >
-          <Server size={13} style={{ color: selectedFunctions.includes("Backend Engineer") ? "#fff" : "#71717a" }} />
-          Backend
-        </button>
+            <button type="button" onClick={() => setRemoteType(remoteType === "REMOTE" ? "" : "REMOTE")} style={pillStyle(remoteType === "REMOTE")}>
+              <Globe size={13} style={iconColor(remoteType === "REMOTE")} />
+              Remote Only
+            </button>
 
-        {/* Frontend Preset */}
-        <button
-          type="button"
-          onClick={() => {
-            const tag = "Frontend Software Engineer";
-            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
-          }}
-          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
-          style={{
-            background: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-            borderColor: selectedFunctions.includes("Frontend Software Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
-            color: selectedFunctions.includes("Frontend Software Engineer") ? "#f4f4f5" : "#a1a1aa",
-          }}
-        >
-          <Monitor size={13} style={{ color: selectedFunctions.includes("Frontend Software Engineer") ? "#fff" : "#71717a" }} />
-          Frontend
-        </button>
+            <button type="button" onClick={() => toggleFn("Full Stack Engineer")} style={pillStyle(selectedFunctions.includes("Full Stack Engineer"))}>
+              <Code size={13} style={iconColor(selectedFunctions.includes("Full Stack Engineer"))} />
+              Full Stack
+            </button>
 
-        {/* AI & ML Preset */}
-        <button
-          type="button"
-          onClick={() => {
-            const tag = "Machine Learning Engineer";
-            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
-          }}
-          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
-          style={{
-            background: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-            borderColor: selectedFunctions.includes("Machine Learning Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
-            color: selectedFunctions.includes("Machine Learning Engineer") ? "#f4f4f5" : "#a1a1aa",
-          }}
-        >
-          <BrainCircuit size={13} style={{ color: selectedFunctions.includes("Machine Learning Engineer") ? "#fff" : "#71717a" }} />
-          AI / ML
-        </button>
+            <button type="button" onClick={() => toggleFn("Backend Engineer")} style={pillStyle(selectedFunctions.includes("Backend Engineer"))}>
+              <Server size={13} style={iconColor(selectedFunctions.includes("Backend Engineer"))} />
+              Backend
+            </button>
 
-        {/* Data Analyst Preset */}
-        <button
-          type="button"
-          onClick={() => {
-            const tag = "Data Analyst";
-            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
-          }}
-          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
-          style={{
-            background: selectedFunctions.includes("Data Analyst") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-            borderColor: selectedFunctions.includes("Data Analyst") ? "rgba(255, 255, 255, 0.2)" : "transparent",
-            color: selectedFunctions.includes("Data Analyst") ? "#f4f4f5" : "#a1a1aa",
-          }}
-        >
-          <LineChart size={13} style={{ color: selectedFunctions.includes("Data Analyst") ? "#fff" : "#71717a" }} />
-          Data Analyst
-        </button>
+            <button type="button" onClick={() => toggleFn("Frontend Software Engineer")} style={pillStyle(selectedFunctions.includes("Frontend Software Engineer"))}>
+              <Monitor size={13} style={iconColor(selectedFunctions.includes("Frontend Software Engineer"))} />
+              Frontend
+            </button>
 
-        {/* Security Preset */}
-        <button
-          type="button"
-          onClick={() => {
-            const tag = "Cyber Security Engineer";
-            setSelectedFunctions(selectedFunctions.includes(tag) ? selectedFunctions.filter(f => f !== tag) : [...selectedFunctions, tag]);
-          }}
-          className="h-8 px-3.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer border flex items-center gap-1.5 select-none"
-          style={{
-            background: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-            borderColor: selectedFunctions.includes("Cyber Security Engineer") ? "rgba(255, 255, 255, 0.2)" : "transparent",
-            color: selectedFunctions.includes("Cyber Security Engineer") ? "#f4f4f5" : "#a1a1aa",
-          }}
-        >
-          <ShieldAlert size={13} style={{ color: selectedFunctions.includes("Cyber Security Engineer") ? "#fff" : "#71717a" }} />
-          Cyber Security
-        </button>
-      </div>
+            <button type="button" onClick={() => toggleFn("Machine Learning Engineer")} style={pillStyle(selectedFunctions.includes("Machine Learning Engineer"))}>
+              <BrainCircuit size={13} style={iconColor(selectedFunctions.includes("Machine Learning Engineer"))} />
+              AI / ML
+            </button>
+
+            <button type="button" onClick={() => toggleFn("Data Analyst")} style={pillStyle(selectedFunctions.includes("Data Analyst"))}>
+              <LineChart size={13} style={iconColor(selectedFunctions.includes("Data Analyst"))} />
+              Data Analyst
+            </button>
+
+            <button type="button" onClick={() => toggleFn("Cyber Security Engineer")} style={pillStyle(selectedFunctions.includes("Cyber Security Engineer"))}>
+              <ShieldAlert size={13} style={iconColor(selectedFunctions.includes("Cyber Security Engineer"))} />
+              Cyber Security
+            </button>
+          </div>
+        );
+      })()}
 
       {/* ── Skills Filter Panel ─────────── */}
       {showFilters && (
@@ -1338,156 +1278,120 @@ export default function JobsDashboard() {
               return (
                 <div
                   key={job.id}
-                  className="glass-card job-card"
-                  style={{ padding: 22, display: "flex", flexDirection: "column", cursor: "pointer", position: "relative" }}
+                  className="job-card"
+                  style={{ display: "flex", flexDirection: "column", cursor: "pointer" }}
                   onClick={() => openJobModal(job)}
                 >
-                  {/* Freshness dot */}
-                  <div style={{ position: "absolute", top: 14, right: 14, display: "flex", alignItems: "center", gap: 5 }}>
-                    {isApplied && <span style={{ fontSize: 10, fontWeight: 600, color: "var(--success)", background: "var(--success-soft)", padding: "2px 8px", borderRadius: 999 }}>Applied</span>}
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: freshness.dot }} title={freshness.label} />
-                  </div>
+                  {/* Card Body */}
+                  <div className="job-card-body" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                    {/* Top row: badges + freshness */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        <span className={sourceBadgeClass(job.source)}>{job.source.toLowerCase()}</span>
+                        {job.remote_type && job.remote_type !== "UNKNOWN" && (
+                          <span className={remoteBadgeClass(job.remote_type)}>{job.remote_type.toLowerCase()}</span>
+                        )}
+                        {isApplied && <span className="badge" style={{ background: "var(--success-soft)", color: "var(--success)", border: "1px solid rgba(34, 197, 94, 0.15)" }}>applied</span>}
+                      </div>
+                      <span
+                        className={`freshness-dot ${freshness.label === 'New' ? 'freshness-new' : freshness.label === 'Recent' ? 'freshness-recent' : 'freshness-aging'}`}
+                        title={`${freshness.label} — ${timeAgo(job.posted_at || job.created_at)}`}
+                      />
+                    </div>
 
-                  {/* Title + source */}
-                  <div style={{ paddingRight: 60, marginBottom: 10 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, letterSpacing: "-0.01em", margin: 0 }}>
+                    {/* Title */}
+                    <h3 style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, letterSpacing: "-0.01em", margin: "0 0 8px", color: "var(--text-primary)" }}>
                       {job.title}
                     </h3>
-                  </div>
 
-                  {/* Meta */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 13, color: "var(--text-secondary)", marginBottom: 10 }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <Building2 size={14} style={{ color: "var(--accent-glow)" }} /> {job.company_name}
-                    </span>
-                    {job.location && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <MapPin size={14} style={{ color: "var(--text-muted)" }} />
-                        {job.location.length > 30 ? job.location.slice(0, 30) + "…" : job.location}
+                    {/* Company + Location */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 14px", fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <Building2 size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} /> {job.company_name}
                       </span>
-                    )}
-                  </div>
-
-                  {/* Badges */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
-                    <span className={sourceBadgeClass(job.source)}>{job.source}</span>
-                    {job.remote_type && job.remote_type !== "UNKNOWN" && (
-                      <span className={remoteBadgeClass(job.remote_type)}>{job.remote_type}</span>
-                    )}
-                  </div>
-
-                  {/* Skills pills */}
-                  {job.skills && job.skills.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
-                      {job.skills.slice(0, 5).map((skill) => (
-                        <span
-                          key={skill}
-                          style={{
-                            padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 600,
-                            background: `${getSkillColor(skill)}15`, color: getSkillColor(skill),
-                          }}
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                      {job.skills.length > 5 && (
-                        <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 10, color: "var(--text-muted)" }}>
-                          +{job.skills.length - 5}
+                      {job.location && (
+                        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-muted)" }}>
+                          <MapPin size={13} style={{ flexShrink: 0 }} />
+                          {job.location.length > 28 ? job.location.slice(0, 28) + "…" : job.location}
                         </span>
                       )}
                     </div>
-                  )}
 
-                  {/* Salary */}
-                  {(job.salary_min || job.salary_max) && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--salary)", marginBottom: 4 }}>
-                      <DollarSign size={13} />
-                      {formatSalary(job.salary_min, job.salary_max, job.salary_currency, job.salary_period)}
-                    </div>
-                  )}
+                    {/* Salary (prominent if present) */}
+                    {(job.salary_min || job.salary_max) && (
+                      <div className="salary-tag" style={{ marginBottom: 10, alignSelf: "flex-start" }}>
+                        <DollarSign size={12} />
+                        {formatSalary(job.salary_min, job.salary_max, job.salary_currency, job.salary_period)}
+                      </div>
+                    )}
 
-                  <div style={{ flex: 1 }} />
+                    {/* Skills */}
+                    {job.skills && job.skills.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: "auto", paddingTop: 4 }}>
+                        {job.skills.slice(0, 4).map((skill) => (
+                          <span
+                            key={skill}
+                            style={{
+                              padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 500,
+                              background: "rgba(255,255,255,0.04)", color: "var(--text-muted)",
+                              border: "1px solid var(--border-subtle)",
+                            }}
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {job.skills.length > 4 && (
+                          <span style={{ padding: "2px 6px", fontSize: 10, color: "var(--text-dimmed)" }}>
+                            +{job.skills.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Footer */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border-subtle)" }}>
-                    <span style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                      <Clock size={12} /> {timeAgo(job.posted_at || job.created_at)}
+                  {/* Card Footer */}
+                  <div className="job-card-footer">
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, fontVariantNumeric: "tabular-nums" }}>
+                      <Clock size={11} /> {timeAgo(job.posted_at || job.created_at)}
                     </span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div className="job-card-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); setCvModalJob(job); }}
-                        style={{
-                          background: "linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%)",
-                          color: "#c084fc",
-                          border: "1px solid rgba(168, 85, 247, 0.3)",
-                          padding: "4px 9px",
-                          borderRadius: 8,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          transition: "all 0.15s",
-                        }}
-                        title="Generate AI Tailored CV & ATS Score"
+                        className="btn-ghost"
+                        style={{ color: "#a78bfa", fontSize: 11, padding: "4px 8px" }}
+                        title="AI Tailor CV"
                       >
-                        <Sparkles size={12} />
-                        Tailor CV
+                        <Sparkles size={12} /> Tailor
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleApplied(job.id); }}
                         disabled={isUploading}
+                        className="btn-ghost"
                         style={{
-                          background: isUploading 
-                            ? "rgba(99, 102, 241, 0.2)" 
-                            : isApplied 
-                            ? "var(--success-soft)" 
-                            : "rgba(255,255,255,0.04)",
-                          color: isUploading 
-                            ? "#a5b4fc" 
-                            : isApplied 
-                            ? "var(--success)" 
-                            : "var(--text-muted)",
-                          border: `1px solid ${
-                            isUploading 
-                              ? "rgba(99, 102, 241, 0.4)" 
-                              : isApplied 
-                              ? "rgba(52,211,153,0.3)" 
-                              : "var(--border-subtle)"
-                          }`,
-                          padding: "4px 8px",
-                          borderRadius: 8,
+                          color: isUploading ? "var(--accent-glow)" : isApplied ? "var(--success)" : "var(--text-muted)",
                           fontSize: 11,
-                          fontWeight: 600,
+                          padding: "4px 8px",
                           cursor: isUploading ? "wait" : "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          transition: "all 0.15s",
                         }}
-                        title={isUploading ? "Syncing to Google Sheet..." : isApplied ? "Marked as Applied" : "Mark as Applied"}
+                        title={isUploading ? "Syncing..." : isApplied ? "Applied" : "Mark Applied"}
                       >
-                        {isUploading ? (
-                          <Loader2 size={13} className="animate-spin" />
-                        ) : (
-                          <CheckCircle2 size={13} />
-                        )}
-                        {isUploading ? "Syncing..." : isApplied ? "Applied" : "Apply"}
+                        {isUploading ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                        {isUploading ? "..." : isApplied ? "Applied" : "Apply"}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleSaved(job.id); }}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: isSaved ? "var(--warning)" : "var(--text-muted)", padding: 4, transition: "color 0.15s" }}
-                        title={isSaved ? "Unsave" : "Save for later"}
+                        className="btn-ghost"
+                        style={{ color: isSaved ? "var(--warning)" : "var(--text-muted)", padding: "4px 6px" }}
+                        title={isSaved ? "Unsave" : "Save"}
                       >
-                        {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                        {isSaved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); openJobModal(job); }}
                         className="btn-primary"
-                        style={{ padding: "5px 12px", fontSize: 11 }}
+                        style={{ padding: "5px 12px", fontSize: 11, borderRadius: "var(--radius-sm)" }}
                       >
-                        Details <ExternalLink size={11} />
+                        View
                       </button>
                     </div>
                   </div>
@@ -1512,81 +1416,65 @@ export default function JobsDashboard() {
             const hasNextBlock = endPage < totalPages;
 
             return (
-              <div className="mt-10 mb-8 flex flex-col items-center gap-3 animate-fade-in-up">
-                <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 select-none">
-                  {/* Previous Page Button */}
+              <div style={{ marginTop: 40, marginBottom: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }} className="animate-fade-in-up">
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 4, userSelect: "none" }}>
                   <button
                     type="button"
                     onClick={() => handlePageChange(page - 1)}
                     disabled={page <= 1}
-                    className="h-9 px-3 rounded-xl text-xs font-medium border border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 cursor-pointer"
-                    title="Previous Page"
+                    className="pagination-btn"
+                    style={{ paddingLeft: 10, paddingRight: 10 }}
                   >
                     <ChevronLeft size={15} />
-                    <span className="hidden sm:inline">Prev</span>
                   </button>
 
-                  {/* Jump to Previous 10-Page Block */}
                   {hasPrevBlock && (
                     <button
                       type="button"
                       onClick={() => handlePageChange(startPage - 1)}
-                      className="min-w-[36px] h-9 px-2 rounded-xl text-xs font-semibold text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08] transition-all cursor-pointer flex items-center justify-center tracking-widest"
-                      title={`Jump to Page ${startPage - 1}`}
+                      className="pagination-ellipsis"
                     >
-                      ...
+                      ···
                     </button>
                   )}
 
-                  {/* Page Numbers for Current Block (e.g. 1..10 or 11..20) */}
-                  {pageNumbers.map((p) => {
-                    const isActive = p === page;
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => handlePageChange(p)}
-                        className={`min-w-[36px] h-9 px-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
-                          isActive
-                            ? "bg-zinc-100 text-zinc-900 shadow-md font-bold"
-                            : "text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08]"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
+                  {pageNumbers.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handlePageChange(p)}
+                      className={`pagination-btn ${p === page ? 'pagination-active' : ''}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
 
-                  {/* Jump to Next 10-Page Block */}
                   {hasNextBlock && (
                     <button
                       type="button"
                       onClick={() => handlePageChange(endPage + 1)}
-                      className="min-w-[36px] h-9 px-2 rounded-xl text-xs font-semibold text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08] transition-all cursor-pointer flex items-center justify-center tracking-widest"
-                      title={`Jump to Page ${endPage + 1}`}
+                      className="pagination-ellipsis"
                     >
-                      ...
+                      ···
                     </button>
                   )}
 
-                  {/* Next Page Button */}
                   <button
                     type="button"
                     onClick={() => handlePageChange(page + 1)}
                     disabled={page >= totalPages}
-                    className="h-9 px-3 rounded-xl text-xs font-medium border border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 cursor-pointer"
-                    title="Next Page"
+                    className="pagination-btn"
+                    style={{ paddingLeft: 10, paddingRight: 10 }}
                   >
-                    <span className="hidden sm:inline">Next</span>
                     <ChevronRight size={15} />
                   </button>
                 </div>
 
-                {/* Status Indicator */}
-                <div className="text-xs text-zinc-500 font-mono tracking-tight">
-                  Page <span className="text-zinc-300 font-semibold">{page}</span> of{" "}
-                  <span className="text-zinc-300 font-semibold">{totalPages}</span>
-                  {total > 0 && <span className="text-zinc-600"> • {total.toLocaleString()} total jobs</span>}
+                <div style={{ fontSize: 12, color: "var(--text-dimmed)", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "-0.02em" }}>
+                  <span style={{ color: "var(--text-muted)" }}>{page}</span>
+                  <span style={{ margin: "0 4px" }}>/</span>
+                  <span style={{ color: "var(--text-muted)" }}>{totalPages}</span>
+                  {total > 0 && <span style={{ color: "var(--text-dimmed)", marginLeft: 8 }}>· {total.toLocaleString()} jobs</span>}
                 </div>
               </div>
             );

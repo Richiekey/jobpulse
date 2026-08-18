@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     status              job_status NOT NULL DEFAULT 'ACTIVE',
     content_hash        TEXT,                   -- SHA-256 of description
     deduplication_key   TEXT,                   -- hash(company_lower + title_norm + location)
+    is_published        BOOLEAN DEFAULT false,  -- curated for public display
+    published_at        TIMESTAMPTZ,            -- when last published
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (source, source_job_id)
 );

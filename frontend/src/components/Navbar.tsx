@@ -8,7 +8,7 @@ import { User, LogIn, FileText, Table, LogOut, ChevronDown, Sparkles, Bookmark, 
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
@@ -74,10 +74,12 @@ export function Navbar() {
               <Bookmark size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />
               Saved
             </Link>
-            <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`} style={{ color: pathname === "/admin" ? "#ffffff" : "#c084fc" }}>
-              <ShieldCheck size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />
-              Admin
-            </Link>
+            {isAdmin && (
+              <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`} style={{ color: pathname === "/admin" ? "#ffffff" : "#c084fc" }}>
+                <ShieldCheck size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />
+                Admin
+              </Link>
+            )}
             <Link href="/import" className={`nav-link ${pathname === "/import" ? "active" : ""}`}>
               Import
             </Link>
@@ -154,8 +156,18 @@ export function Navbar() {
                     }}
                   >
                     <div style={{ padding: "8px 12px 10px", borderBottom: "1px solid var(--border-subtle)", marginBottom: 6 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
-                        {profile?.full_name || "Job Seeker"}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                          {profile?.full_name || "Job Seeker"}
+                        </div>
+                        {isAdmin && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
+                            padding: "2px 6px", borderRadius: 4,
+                            background: "rgba(168,85,247,0.15)", color: "#c084fc",
+                            border: "1px solid rgba(168,85,247,0.3)",
+                          }}>Admin</span>
+                        )}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {user.email}

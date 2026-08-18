@@ -64,11 +64,7 @@ export default function LocationFilterPopover({ value, onChange }: LocationFilte
     setTempCountry("ALL");
     setTempAllLocations(true);
     setTempCity("");
-    onChange({
-      country: "ALL",
-      allLocationsInCountry: true,
-      cityOrState: "",
-    });
+    onChange({ country: "ALL", allLocationsInCountry: true, cityOrState: "" });
     setOpen(false);
   };
 
@@ -82,50 +78,133 @@ export default function LocationFilterPopover({ value, onChange }: LocationFilte
 
   const isFiltered = Boolean(value.cityOrState || (value.country && value.country !== "ALL"));
 
+  // Shared style constants
+  const S = {
+    panel: {
+      position: "absolute" as const,
+      left: 0,
+      zIndex: 9999,
+      marginTop: 10,
+      width: 380,
+      borderRadius: 16,
+      padding: 20,
+      background: "#0f0f12",
+      border: "1px solid rgba(255,255,255,0.08)",
+      boxShadow: "0 25px 60px -15px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.04)",
+      animation: "fadeInUp 0.15s ease-out",
+    },
+    sectionLabel: {
+      fontSize: 10,
+      fontWeight: 700 as const,
+      color: "#71717a",
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.08em",
+    },
+    countryCard: (selected: boolean) => ({
+      padding: "10px 12px",
+      borderRadius: 12,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      transition: "all 0.15s ease",
+      background: selected ? "rgba(99, 102, 241, 0.08)" : "transparent",
+      border: `1px solid ${selected ? "rgba(99, 102, 241, 0.15)" : "transparent"}`,
+    }),
+    iconBox: (selected: boolean) => ({
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0 as const,
+      background: selected ? "rgba(99, 102, 241, 0.15)" : "rgba(255,255,255,0.04)",
+      color: selected ? "#a5b4fc" : "#71717a",
+    }),
+    hubPill: (selected: boolean) => ({
+      fontSize: 11,
+      fontWeight: 500 as const,
+      padding: "5px 10px",
+      borderRadius: 8,
+      cursor: "pointer",
+      border: "1px solid",
+      transition: "all 0.15s ease",
+      background: selected ? "rgba(99, 102, 241, 0.12)" : "transparent",
+      color: selected ? "#c7d2fe" : "#a1a1aa",
+      borderColor: selected ? "rgba(99, 102, 241, 0.2)" : "rgba(255,255,255,0.06)",
+    }),
+    input: {
+      width: "100%",
+      height: 36,
+      padding: "0 12px 0 34px",
+      borderRadius: 10,
+      fontSize: 12,
+      background: "rgba(0,0,0,0.4)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      color: "#e4e4e7",
+      outline: "none",
+      transition: "border-color 0.15s ease",
+      fontFamily: "inherit",
+    },
+  };
+
   return (
-    <div className="relative inline-block text-left" ref={popoverRef}>
+    <div style={{ position: "relative", display: "inline-block" }} ref={popoverRef}>
+      {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="h-11 flex items-center gap-2.5 px-4 rounded-xl text-xs font-medium transition-all duration-200 select-none cursor-pointer border"
         style={{
-          background: isFiltered ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)",
-          borderColor: isFiltered ? "rgba(255, 255, 255, 0.2)" : "transparent",
-          color: isFiltered ? "#f4f4f5" : "#a1a1aa",
+          height: 44,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "0 14px",
+          borderRadius: 12,
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: "pointer",
+          border: "1px solid",
+          transition: "all 0.2s ease",
+          fontFamily: "inherit",
+          background: isFiltered ? "rgba(99, 102, 241, 0.08)" : "rgba(255,255,255,0.04)",
+          borderColor: isFiltered ? "rgba(99, 102, 241, 0.2)" : "rgba(255,255,255,0.06)",
+          color: isFiltered ? "#c7d2fe" : "#a1a1aa",
         }}
       >
-        <MapPin size={14} style={{ color: isFiltered ? "#fff" : "#71717a" }} />
-        <span className="truncate max-w-[130px]">{getTriggerLabel()}</span>
+        <MapPin size={14} style={{ color: isFiltered ? "#a5b4fc" : "#71717a" }} />
+        <span style={{ maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getTriggerLabel()}</span>
         <ChevronDown
           size={13}
-          className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180 text-zinc-300" : "text-zinc-500"}`}
+          style={{
+            transition: "transform 0.2s ease",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            color: open ? "#a1a1aa" : "#52525b",
+            flexShrink: 0,
+          }}
         />
       </button>
 
+      {/* Popover Panel */}
       {open && (
-        <div
-          className="absolute left-0 z-50 mt-2.5 w-[330px] sm:w-[380px] rounded-2xl p-5 animate-fade-in-up border"
-          style={{
-            background: "#09090b",
-            borderColor: "rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
-          }}
-        >
-          <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
-            <div className="flex items-center gap-2">
-              <Globe size={14} className="text-zinc-400" />
-              <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
-                Country & Region
-              </span>
+        <div style={S.panel}>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 12, marginBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Globe size={14} style={{ color: "#71717a" }} />
+              <span style={S.sectionLabel}>Country & Region</span>
             </div>
             {isFiltered && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">
-                Filter Active
+              <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 99, background: "rgba(99, 102, 241, 0.1)", color: "#a5b4fc", border: "1px solid rgba(99, 102, 241, 0.15)" }}>
+                Active
               </span>
             )}
           </div>
 
-          <div className="space-y-1.5 mb-4">
+          {/* Country List */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
             {COUNTRIES.map((c) => {
               const isSelected = tempCountry === c.code;
               const Icon = c.icon;
@@ -133,130 +212,87 @@ export default function LocationFilterPopover({ value, onChange }: LocationFilte
                 <div
                   key={c.code}
                   onClick={() => setTempCountry(c.code)}
-                  className="p-2.5 rounded-xl cursor-pointer transition-all duration-150 flex items-center justify-between border select-none hover:bg-white/[0.04]"
-                  style={{
-                    background: isSelected ? "rgba(255, 255, 255, 0.06)" : "transparent",
-                    borderColor: isSelected ? "rgba(255, 255, 255, 0.15)" : "transparent",
-                  }}
+                  style={S.countryCard(isSelected)}
+                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                  onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-md ${isSelected ? 'bg-zinc-100 text-zinc-900' : 'bg-zinc-800/50 text-zinc-400'}`}>
-                      <Icon size={14} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={S.iconBox(isSelected)}>
+                      <Icon size={15} />
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-zinc-200">{c.label}</div>
-                      <div className="text-[10px] text-zinc-500">{c.desc}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: isSelected ? "#e4e4e7" : "#d4d4d8" }}>{c.label}</div>
+                      <div style={{ fontSize: 11, color: "#52525b", marginTop: 1 }}>{c.desc}</div>
                     </div>
                   </div>
-
-                  {isSelected && <Check size={14} className="text-zinc-300" />}
+                  {isSelected && <Check size={14} style={{ color: "#a5b4fc", flexShrink: 0 }} />}
                 </div>
               );
             })}
           </div>
 
-          {tempCountry !== "ALL" ? (
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-medium text-zinc-400">
-                  All locations in {tempCountry === "US" ? "the US" : tempCountry === "CA" ? "Canada" : "the UK"}
-                </span>
-                <div
-                  onClick={() => setTempAllLocations(!tempAllLocations)}
-                  className="w-8 h-4.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out cursor-pointer flex items-center"
-                  style={{
-                    background: tempAllLocations ? "#fff" : "rgba(255,255,255,0.1)",
-                  }}
+          {/* City/Hub Filter */}
+          <div style={{ padding: 14, borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#71717a", marginBottom: 10 }}>
+              {tempCountry !== "ALL" ? `Filter within ${tempCountry === "US" ? "the US" : tempCountry === "CA" ? "Canada" : "the UK"}` : "Filter by City / Hub (Optional)"}
+            </div>
+            <div style={{ position: "relative" }}>
+              <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#52525b", pointerEvents: "none" }} />
+              <input
+                type="text"
+                placeholder="Enter city or region (e.g. San Francisco)"
+                value={tempCity}
+                onChange={(e) => setTempCity(e.target.value)}
+                style={S.input}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.3)"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+              />
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              {POPULAR_HUBS.slice(0, 6).map((hub) => (
+                <button
+                  key={hub}
+                  type="button"
+                  onClick={() => setTempCity(hub)}
+                  style={S.hubPill(tempCity === hub)}
+                  onMouseEnter={(e) => { if (tempCity !== hub) e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
+                  onMouseLeave={(e) => { if (tempCity !== hub) e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
                 >
-                  <div
-                    className={`w-3.5 h-3.5 rounded-full transition-transform duration-200 ease-in-out shadow-sm ${
-                      tempAllLocations ? "translate-x-3.5 bg-zinc-900" : "translate-x-0 bg-zinc-400"
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {!tempAllLocations && (
-                <div className="mt-2.5 animate-fade-in-up">
-                  <div className="relative">
-                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Enter city or province (e.g. Seattle, Toronto)"
-                      value={tempCity}
-                      onChange={(e) => setTempCity(e.target.value)}
-                      className="w-full pl-8.5 pr-3 text-xs h-9 bg-black/40 border border-white/10 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {POPULAR_HUBS.slice(0, 6).map((hub) => (
-                      <button
-                        key={hub}
-                        type="button"
-                        onClick={() => setTempCity(hub)}
-                        className="text-[10px] font-medium px-2 py-1 rounded-md transition-colors cursor-pointer border"
-                        style={{
-                          background: tempCity === hub ? "rgba(255, 255, 255, 0.1)" : "transparent",
-                          color: tempCity === hub ? "#fff" : "#a1a1aa",
-                          borderColor: tempCity === hub ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.08)",
-                        }}
-                      >
-                        {hub}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                  {hub}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] mb-4">
-              <div className="text-[11px] font-medium text-zinc-400 mb-2">
-                Filter by City / Hub (Optional)
-              </div>
-              <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Enter city or region (e.g. San Francisco, London)"
-                  value={tempCity}
-                  onChange={(e) => setTempCity(e.target.value)}
-                  className="w-full pl-8.5 pr-3 text-xs h-9 bg-black/40 border border-white/10 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
-                />
-              </div>
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {POPULAR_HUBS.slice(0, 6).map((hub) => (
-                  <button
-                    key={hub}
-                    type="button"
-                    onClick={() => setTempCity(hub)}
-                    className="text-[10px] font-medium px-2 py-1 rounded-md transition-colors cursor-pointer border hover:border-white/20 hover:text-zinc-300"
-                    style={{
-                      background: tempCity === hub ? "rgba(255, 255, 255, 0.1)" : "transparent",
-                      color: tempCity === hub ? "#fff" : "#a1a1aa",
-                      borderColor: tempCity === hub ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.08)",
-                    }}
-                  >
-                    {hub}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-white/5">
+          {/* Footer */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs font-medium text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer px-2 py-1"
+              style={{ fontSize: 12, fontWeight: 500, color: "#71717a", cursor: "pointer", background: "none", border: "none", padding: "6px 8px", fontFamily: "inherit", transition: "color 0.15s ease" }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#a1a1aa"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#71717a"; }}
             >
               Reset
             </button>
-
             <button
               type="button"
               onClick={handleConfirm}
-              className="text-xs py-2 px-5 rounded-xl font-semibold cursor-pointer text-zinc-900 bg-zinc-100 hover:bg-white transition-colors"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "8px 20px",
+                borderRadius: 10,
+                cursor: "pointer",
+                border: "none",
+                fontFamily: "inherit",
+                background: "linear-gradient(135deg, #6366f1, #818cf8)",
+                color: "#fff",
+                transition: "all 0.15s ease",
+                boxShadow: "0 2px 8px rgba(99, 102, 241, 0.3)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.4)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(99, 102, 241, 0.3)"; }}
             >
               Confirm
             </button>

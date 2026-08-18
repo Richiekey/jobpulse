@@ -165,6 +165,7 @@ class Database:
                     "company_name": job.company_name,
                     "company_url": job.company_url,
                     "location": job.location,
+                    "locations": [loc.model_dump() for loc in job.locations] if job.locations else [],
                     "country": job.country,
                     "city": job.city,
                     "remote_type": job.remote_type.value,

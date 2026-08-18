@@ -1,6 +1,7 @@
 import asyncio
 import sys
 from typing import Optional
+from datetime import datetime, timezone, timedelta
 
 from src.config import settings
 from src.database import Database
@@ -65,7 +66,10 @@ async def run_scrape(db: Optional[Database] = None):
                 jobs = [
                     j for j in jobs
                     if is_allowed_location(j.location)
-                    and (j.posted_at is None or j.posted_at.replace(tzinfo=timezone.utc) if j.posted_at.tzinfo is None else j.posted_at >= cutoff_date)
+                    and (
+                        j.posted_at is None
+                        or (j.posted_at.replace(tzinfo=timezone.utc) if j.posted_at.tzinfo is None else j.posted_at) >= cutoff_date
+                    )
                 ]
                 filtered_out = pre_filter - len(jobs)
                 if filtered_out > 0:

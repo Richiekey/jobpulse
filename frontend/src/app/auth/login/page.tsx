@@ -3,16 +3,14 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Lock, Mail, User, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
 
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,37 +44,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        if (!email || !password || !fullName) {
-          setError("Please fill in all fields.");
-          setLoading(false);
-          return;
-        }
-        if (password.length < 6) {
-          setError("Password must be at least 6 characters.");
-          setLoading(false);
-          return;
-        }
-        const res = await signUp(email, password, fullName);
-        if (res.error) {
-          setError(res.error);
-        } else {
-          setSuccessMsg("Account created successfully! Redirecting...");
-          setTimeout(() => router.push("/profile"), 1200);
-        }
+      if (!email || !password) {
+        setError("Please enter your email and password.");
+        setLoading(false);
+        return;
+      }
+      const res = await signIn(email, password);
+      if (res.error) {
+        setError(res.error);
       } else {
-        if (!email || !password) {
-          setError("Please enter your email and password.");
-          setLoading(false);
-          return;
-        }
-        const res = await signIn(email, password);
-        if (res.error) {
-          setError(res.error);
-        } else {
-          setSuccessMsg("Signed in successfully! Redirecting...");
-          setTimeout(() => router.push("/profile"), 1000);
-        }
+        setSuccessMsg("Signed in successfully! Redirecting...");
+        setTimeout(() => router.push("/"), 1000);
       }
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred.");
@@ -105,66 +83,14 @@ export default function LoginPage() {
           <Sparkles size={24} color="white" />
         </div>
         <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 6px" }}>
-          {isSignUp ? "Create your JobPulse Account" : "Welcome back to JobPulse"}
+          Welcome to JobPulse
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-          {isSignUp
-            ? "Sync applications to Google Sheets & track your dream roles"
-            : "Sign in to manage your profile and Google Sheets sync"}
+          Sign in with your authorized account to continue
         </p>
       </div>
 
       <div className="glass-card" style={{ padding: 32 }}>
-        {/* Tab switch */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            background: "var(--bg-input)",
-            borderRadius: 10,
-            padding: 4,
-            marginBottom: 24,
-            border: "1px solid var(--border-subtle)",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => { setIsSignUp(false); setError(null); }}
-            style={{
-              padding: "8px 0",
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              border: "none",
-              cursor: "pointer",
-              transition: "all 0.15s",
-              background: !isSignUp ? "var(--bg-card)" : "transparent",
-              color: !isSignUp ? "var(--text-primary)" : "var(--text-muted)",
-              boxShadow: !isSignUp ? "0 2px 8px rgba(0,0,0,0.3)" : "none",
-            }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsSignUp(true); setError(null); }}
-            style={{
-              padding: "8px 0",
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              border: "none",
-              cursor: "pointer",
-              transition: "all 0.15s",
-              background: isSignUp ? "var(--bg-card)" : "transparent",
-              color: isSignUp ? "var(--text-primary)" : "var(--text-muted)",
-              boxShadow: isSignUp ? "0 2px 8px rgba(0,0,0,0.3)" : "none",
-            }}
-          >
-            Create Account
-          </button>
-        </div>
-
         {/* Error Alert */}
         {error && (
           <div
@@ -207,26 +133,6 @@ export default function LoginPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {isSignUp && (
-            <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Full Name
-              </label>
-              <div style={{ position: "relative" }}>
-                <User size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-                <input
-                  type="text"
-                  placeholder="e.g. Alex Morgan"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="input-field"
-                  style={{ paddingLeft: 38 }}
-                  required={isSignUp}
-                />
-              </div>
-            </div>
-          )}
-
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
               Email Address
@@ -253,7 +159,7 @@ export default function LoginPage() {
               <Lock size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
               <input
                 type={showPassword ? "text" : "password"}
-                placeholder={isSignUp ? "Minimum 6 characters" : "Enter password"}
+                placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input-field"
@@ -286,10 +192,20 @@ export default function LoginPage() {
             disabled={loading}
             style={{ width: "100%", justifyContent: "center", marginTop: 8, padding: "12px 0", fontSize: 14 }}
           >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : isSignUp ? "Create Account" : "Sign In"}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : "Sign In"}
             {!loading && <ArrowRight size={16} />}
           </button>
         </form>
+
+        <div style={{
+          marginTop: 20, padding: "12px 16px", borderRadius: 10,
+          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+          textAlign: "center",
+        }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>
+            This application is invite-only. Contact the administrator for access.
+          </p>
+        </div>
       </div>
     </div>
   );

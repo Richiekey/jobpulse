@@ -10,7 +10,12 @@ function getConfig() {
 export async function supabaseFetch(
   table: string,
   params: Record<string, string> = {},
-  extraHeaders: Record<string, string> = {}
+  options: {
+    method?: string;
+    body?: string;
+    headers?: Record<string, string>;
+    Prefer?: string;
+  } = {}
 ) {
   const { url, key } = getConfig();
   const restUrl = `${url}/rest/v1`;
@@ -18,15 +23,29 @@ export async function supabaseFetch(
   const target = new URL(`${restUrl}/${table}`);
   Object.entries(params).forEach(([k, v]) => target.searchParams.set(k, v));
 
-  const res = await fetch(target.toString(), {
-    headers: {
-      'apikey': key,
-      'Authorization': `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      ...extraHeaders,
-    },
-    cache: 'no-store',
-  });
+  const fetchHeaders: Record<string, string> = {
+    'apikey': key,
+    'Authorization': `Bearer ${key}`,
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
 
+  // Support Prefer header (for count=exact, return=minimal, resolution=merge-duplicates, etc.)
+  if (options.Prefer) {
+    fetchHeaders['Prefer'] = options.Prefer;
+  }
+
+  const fetchOptions: RequestInit = {
+    method: options.method || 'GET',
+    headers: fetchHeaders,
+    cache: 'no-store',
+  };
+
+  // Only attach body for non-GET methods
+  if (options.body && options.method && options.method !== 'GET') {
+    fetchOptions.body = options.body;
+  }
+
+  const res = await fetch(target.toString(), fetchOptions);
   return res;
 }
