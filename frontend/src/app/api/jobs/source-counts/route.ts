@@ -26,6 +26,7 @@ export async function GET() {
           status: "eq.ACTIVE",
           source: `eq.${src}`,
           or: `(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`,
+          title: `ilike(any).{*Engineer*,*Developer*,*DevOps*,*SRE*,*QA*,*SDET*,*Full Stack*,*Fullstack*,*Backend*,*Frontend*,*Software*,*Mobile*,*iOS*,*Android*,*Platform*,*Infrastructure*,*Data*,*Machine Learning*,*ML *,*AI *,*Artificial Intelligence*,*NLP*,*LLM*,*Deep Learning*,*Computer Vision*,*Scientist*,*Analytics*,*Security*,*Cyber*,*Cloud*,*Network*,*Product Manager*,*Program Manager*,*TPM*,*Designer*,*UX*,*UI*,*Scrum*,*Agile*,*Account Executive*,*Sales*,*Marketing*,*Operations*,*Financial Analyst*,*Business Analyst*,*Architect*,*Technical*,*Tech Lead*,*CTO*,*VP Engineering*,*Head of*,*Director*,*Manager*}`,
           limit: "1",
         };
 
