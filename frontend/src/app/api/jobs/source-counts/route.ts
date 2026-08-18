@@ -30,19 +30,7 @@ export async function GET() {
           limit: "1",
         };
 
-        // Try with is_published first
-        let res = await supabaseFetch("jobs", { ...params, is_published: "eq.true" }, { Prefer: "count=exact" });
-
-        if (res.ok) {
-          const contentRange = res.headers.get("content-range") || "";
-          if (contentRange.includes("/")) {
-            const total = parseInt(contentRange.split("/")[1], 10);
-            if (total > 0) return { source: src, count: total };
-          }
-        }
-
-        // Fallback without is_published
-        res = await supabaseFetch("jobs", params, { Prefer: "count=exact" });
+        const res = await supabaseFetch("jobs", params, { Prefer: "count=exact" });
         if (res.ok) {
           const contentRange = res.headers.get("content-range") || "";
           if (contentRange.includes("/")) {
