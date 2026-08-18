@@ -206,6 +206,7 @@ function JobModal({
 
   // ── Auto-resolve direct ATS URL for Jobright jobs ──
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [companyUrl, setCompanyUrl] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
@@ -222,11 +223,14 @@ function JobModal({
           if (data.directUrl && !data.directUrl.includes("jobright.ai")) {
             setResolvedUrl(data.directUrl);
           }
+          if (data.companyUrl) {
+            setCompanyUrl(data.companyUrl);
+          }
         })
         .catch(() => {})
         .finally(() => setResolving(false));
     }
-    return () => { setResolvedUrl(null); setResolving(false); };
+    return () => { setResolvedUrl(null); setCompanyUrl(null); setResolving(false); };
   }, [job.id, job.source, job.apply_url, job.job_url]);
 
   const freshness = freshnessColor(job.posted_at || job.created_at);
@@ -476,8 +480,28 @@ function JobModal({
                   </div>
                 )}
 
-                {/* Show Jobright listing link when we have a direct URL */}
-                {hasDirectUrl && isJobright && job.job_url && (
+                {/* Company Careers Page (fallback from resolver) */}
+                {!hasDirectUrl && !resolving && companyUrl && isJobright && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#34d399", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                      🏢 Company Careers Page
+                    </div>
+                    <a
+                      href={companyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 13, color: "#34d399", wordBreak: "break-all", textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
+                    >
+                      {companyUrl} <ExternalLink size={12} />
+                    </a>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                      Search for this role on the company&apos;s careers page
+                    </div>
+                  </div>
+                )}
+
+                {/* Show Jobright listing link when we have a direct URL or company URL */}
+                {(hasDirectUrl || companyUrl) && isJobright && job.job_url && (
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>
                       Jobright Listing
@@ -623,6 +647,7 @@ export default function JobsDashboard() {
   const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
   const [remoteType, setRemoteType] = useState("");
   const [source, setSource] = useState("");
+  const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -630,6 +655,14 @@ export default function JobsDashboard() {
 
   // In-flight request controller
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Fetch source counts on mount
+  useEffect(() => {
+    fetch("/api/jobs/source-counts")
+      .then((r) => r.json())
+      .then((data) => { if (data.counts) setSourceCounts(data.counts); })
+      .catch(() => {});
+  }, []);
 
   // Job modal
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -1070,12 +1103,15 @@ export default function JobsDashboard() {
           placeholder="Job Source"
           icon={Database}
           options={[
-            { value: "", label: `All Sources (${total > 0 && !source ? total.toLocaleString() : "13.5k+"})` },
-            { value: "JOBRIGHT", label: "Jobright (9.7k+)" },
-            { value: "GREENHOUSE", label: "Greenhouse (3.3k+)" },
-            { value: "ASHBY", label: "Ashby (440+)" },
-            { value: "WORKDAY", label: "Workday (29)" },
-            { value: "LEVER", label: "Lever (24)" },
+            { value: "", label: `All Sources (${total > 0 && !source ? total.toLocaleString() : Object.values(sourceCounts).reduce((a, b) => a + b, 0).toLocaleString() || "..."})` },
+            ...(Object.entries(sourceCounts)
+              .filter(([_, count]) => count > 0)
+              .sort((a, b) => b[1] - a[1])
+              .map(([src, count]) => ({
+                value: src,
+                label: `${src.charAt(0) + src.slice(1).toLowerCase()} (${count.toLocaleString()})`,
+              }))
+            ),
           ]}
         />
 
