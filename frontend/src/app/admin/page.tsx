@@ -103,6 +103,7 @@ export default function AdminDashboardPage() {
 
   // Scraper trigger state
   const [scraping, setScraping] = useState(false);
+  const [scrapeStatus, setScrapeStatus] = useState<'idle' | 'scraping' | 'success' | 'error'>('idle');
   const [scrapeMessage, setScrapeMessage] = useState<string | null>(null);
 
   // Resume & Persona Filter State
@@ -148,18 +149,24 @@ export default function AdminDashboardPage() {
   // Trigger manual scrape
   const handleTriggerScrape = async () => {
     setScraping(true);
-    setScrapeMessage(null);
+    setScrapeStatus('scraping');
+    setScrapeMessage('Scraping in progress — fetching jobs from all ATS sources...');
     try {
       const res = await fetch("/api/scrape/trigger", { method: "POST" });
       const data = await res.json();
       if (res.ok) {
-        setScrapeMessage("Scraper triggered successfully! Fetching fresh jobs in background.");
+        setScrapeStatus('success');
+        setScrapeMessage(`Scrape completed successfully! ${data.count ? data.count + ' new jobs imported.' : 'Fresh jobs fetched.'}`);
         setTimeout(() => fetchMetrics(), 4000);
+        // Auto-clear success after 15s
+        setTimeout(() => { setScrapeStatus('idle'); setScrapeMessage(null); }, 15000);
       } else {
-        setScrapeMessage(data.error || "Scrape trigger failed");
+        setScrapeStatus('error');
+        setScrapeMessage(data.error || 'Scrape trigger failed — check backend logs.');
       }
     } catch (err: any) {
-      setScrapeMessage(err?.message || "Network error");
+      setScrapeStatus('error');
+      setScrapeMessage(err?.message || 'Network error — backend may be unreachable.');
     } finally {
       setScraping(false);
     }
@@ -333,12 +340,28 @@ export default function AdminDashboardPage() {
               </span>
             </div>
             <p style={{ color: "#94a3b8", fontSize: 13, margin: "4px 0 0" }}>
-              Multi-ATS ingestion · Diversity balancing · 1,000 daily cap engine
+              Multi-ATS ingestion · Diversity balancing · Job function filtering
             </p>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {/* Scrape Status Indicator */}
+          {scrapeStatus !== 'idle' && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "7px 14px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+              background: scrapeStatus === 'scraping' ? 'rgba(99,102,241,0.1)' : scrapeStatus === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+              border: `1px solid ${scrapeStatus === 'scraping' ? 'rgba(99,102,241,0.25)' : scrapeStatus === 'success' ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`,
+              color: scrapeStatus === 'scraping' ? '#a5b4fc' : scrapeStatus === 'success' ? '#34d399' : '#f87171',
+            }}>
+              {scrapeStatus === 'scraping' && <Loader2 size={13} className="animate-spin" />}
+              {scrapeStatus === 'success' && <CheckCircle2 size={13} />}
+              {scrapeStatus === 'error' && <AlertCircle size={13} />}
+              <span>{scrapeStatus === 'scraping' ? 'Scraping...' : scrapeStatus === 'success' ? 'Complete' : 'Failed'}</span>
+            </div>
+          )}
+
           <button
             onClick={handleTriggerScrape}
             disabled={scraping}
@@ -350,7 +373,7 @@ export default function AdminDashboardPage() {
             }}
           >
             {scraping ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-            Trigger Scrape
+            {scraping ? 'Scraping...' : 'Trigger Scrape'}
           </button>
 
           <Link
@@ -373,11 +396,16 @@ export default function AdminDashboardPage() {
       {scrapeMessage && (
         <div style={{
           marginBottom: 20, padding: "12px 16px", borderRadius: 12,
-          background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)",
-          color: "#c7d2fe", fontSize: 13,
+          background: scrapeStatus === 'error' ? 'rgba(239,68,68,0.1)' : scrapeStatus === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)',
+          border: `1px solid ${scrapeStatus === 'error' ? 'rgba(239,68,68,0.2)' : scrapeStatus === 'success' ? 'rgba(16,185,129,0.2)' : 'rgba(99,102,241,0.2)'}`,
+          color: scrapeStatus === 'error' ? '#f87171' : scrapeStatus === 'success' ? '#34d399' : '#c7d2fe',
+          fontSize: 13,
           display: "flex", alignItems: "center", gap: 8,
         }}>
-          <Activity size={15} />
+          {scrapeStatus === 'scraping' && <Loader2 size={15} className="animate-spin" />}
+          {scrapeStatus === 'success' && <CheckCircle2 size={15} />}
+          {scrapeStatus === 'error' && <AlertCircle size={15} />}
+          {scrapeStatus === 'idle' && <Activity size={15} />}
           <span>{scrapeMessage}</span>
         </div>
       )}
@@ -444,10 +472,10 @@ export default function AdminDashboardPage() {
                   padding: "3px 8px", borderRadius: 6,
                   background: "rgba(16,185,129,0.1)", color: "#34d399",
                   border: "1px solid rgba(16,185,129,0.2)",
-                }}>24H Cap</span>
+                }}>Live</span>
               </div>
               <div style={{ fontSize: 36, fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", lineHeight: 1 }}>
-                {metrics?.publishedTotal?.toLocaleString() || "1,000"}
+                {metrics?.publishedTotal?.toLocaleString() || metrics?.warehouseTotal?.toLocaleString() || "—"}
               </div>
               <div style={{
                 marginTop: 12, height: 4, borderRadius: 2,
@@ -455,11 +483,11 @@ export default function AdminDashboardPage() {
               }}>
                 <div style={{
                   height: "100%", borderRadius: 2, width: "100%",
-                  background: "linear-gradient(90deg, #6366f1, #a855f7)",
+                  background: "linear-gradient(90deg, #10b981, #34d399)",
                 }} />
               </div>
               <p style={{ margin: "10px 0 0", fontSize: 12, color: "#64748b" }}>
-                Strict ceiling of 1,000 fresh curated positions
+                All matching positions (filtered by job function)
               </p>
             </div>
 
@@ -832,7 +860,7 @@ export default function AdminDashboardPage() {
               24-Hour Automation Engine
             </h3>
             <p style={{ color: "#94a3b8", fontSize: 14, margin: "0 0 28px" }}>
-              Runs daily: scrapes all ATS platforms, scores against your resume, balances diversity, and publishes the fresh 1,000 batch automatically.
+              Runs daily: scrapes all ATS platforms, filters by job function, balances diversity, and publishes all matching positions automatically.
             </p>
 
             {autoRunMessage && (
