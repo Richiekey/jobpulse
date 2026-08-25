@@ -10,7 +10,7 @@ import CvGeneratorModal from "@/components/CvGeneratorModal";
 import CoverLetterModal from "@/components/CoverLetterModal";
 import JobQaModal from "@/components/JobQaModal";
 import ScreenshotProofModal from "@/components/ScreenshotProofModal";
-import { identifyAtsPlatform, resolveDirectApplyUrl } from "@/lib/jobUrls";
+import { identifyAtsPlatform, resolveDirectApplyUrl, ALL_ATS_PLATFORMS, getPlatformMeta } from "@/lib/jobUrls";
 import { ResumeData } from "@/lib/pdfGenerator";
 import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
@@ -1124,14 +1124,15 @@ export default function JobsDashboard() {
           icon={Database}
           options={[
             { value: "", label: `All Sources (${total > 0 && !source ? total.toLocaleString() : Object.values(sourceCounts).reduce((a, b) => a + b, 0).toLocaleString() || "..."})` },
-            ...(Object.entries(sourceCounts)
-              .filter(([_, count]) => count > 0)
-              .sort((a, b) => b[1] - a[1])
-              .map(([src, count]) => ({
-                value: src,
-                label: `${src.charAt(0) + src.slice(1).toLowerCase()} (${count.toLocaleString()})`,
-              }))
-            ),
+            ...ALL_ATS_PLATFORMS.map((p) => {
+              const count = sourceCounts[p.id] || 0;
+              return {
+                value: p.id,
+                label: `${p.label} (${count.toLocaleString()})`,
+                count,
+              };
+            })
+            .sort((a, b) => b.count - a.count),
           ]}
         />
 

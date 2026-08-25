@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseFetch } from "@/lib/supabase";
+import { ALL_ATS_PLATFORMS } from "@/lib/jobUrls";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -12,12 +13,7 @@ export async function GET() {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const sources = [
-      "JOBRIGHT", "GREENHOUSE", "ASHBY", "WORKDAY", "LEVER", "WORKABLE", 
-      "ICIMS", "APPLYTOJOB", "JOBVITE", "SMARTRECRUITERS", "RIPPLING", 
-      "RECRUITERFLOW", "GUSTO_ATS", "MANATAL", "RECRUITEE", "BREEZY", 
-      "BAMBOOHR", "CATS", "JOBDIVA", "BULLHORN"
-    ];
+    const sources = ALL_ATS_PLATFORMS.map((p) => p.id);
 
     const counts: Record<string, number> = {};
 

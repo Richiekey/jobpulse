@@ -17,19 +17,19 @@ interface SourceHealthItem {
   error_message?: string;
 }
 
+import { ALL_ATS_PLATFORMS, getPlatformMeta } from "@/lib/jobUrls";
+
 const API_BASE = "/api";
 
-const platformMeta: Record<string, { color: string; gradient: string }> = {
-  GREENHOUSE: { color: "#34d399", gradient: "linear-gradient(135deg, rgba(52,211,153,0.12), rgba(52,211,153,0.03))" },
-  ASHBY: { color: "#fbbf24", gradient: "linear-gradient(135deg, rgba(251,191,36,0.12), rgba(251,191,36,0.03))" },
-  LEVER: { color: "#818cf8", gradient: "linear-gradient(135deg, rgba(129,140,248,0.12), rgba(129,140,248,0.03))" },
-  WORKDAY: { color: "#f472b6", gradient: "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(236,72,153,0.03))" },
-  WORKABLE: { color: "#60a5fa", gradient: "linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0.03))" },
-  APPLYTOJOB: { color: "#c084fc", gradient: "linear-gradient(135deg, rgba(168,85,247,0.12), rgba(168,85,247,0.03))" },
-  JOBVITE: { color: "#2dd4bf", gradient: "linear-gradient(135deg, rgba(20,184,166,0.12), rgba(20,184,166,0.03))" },
-  ICIMS: { color: "#fb923c", gradient: "linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.03))" },
-  JOBRIGHT: { color: "#00f0a0", gradient: "linear-gradient(135deg, rgba(0,240,160,0.12), rgba(0,240,160,0.03))" },
-};
+function getMetaForSource(sourceName: string) {
+  const p = getPlatformMeta(sourceName);
+  const color = p.color;
+  return {
+    label: p.label,
+    color,
+    gradient: `linear-gradient(135deg, ${color}1f, ${color}08)`,
+  };
+}
 
 function formatTime(dateStr?: string) {
   if (!dateStr) return "Never";
@@ -152,16 +152,15 @@ export default function HealthPage() {
         </div>
       ) : (
         <div className="stagger-children" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-          {(healthData.length > 0 ? healthData : [
-            { source: "GREENHOUSE" }, { source: "ASHBY" }, { source: "LEVER" }, 
-            { source: "WORKDAY" }, { source: "WORKABLE" }, { source: "APPLYTOJOB" },
-            { source: "JOBVITE" }, { source: "ICIMS" }, { source: "JOBRIGHT" }
-          ]).map((sourceItem) => {
+          {(healthData.length > 0
+            ? healthData
+            : (ALL_ATS_PLATFORMS.map((p) => ({ source: p.id })) as SourceHealthItem[])
+          ).map((sourceItem) => {
             const platform = sourceItem.source;
-            const item = healthData.find((h) => h.source === platform) || sourceItem;
-            const meta = platformMeta[platform] || { color: "var(--text-primary)", gradient: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))" };
-            const activeJobs = item?.active_jobs ?? item?.total_active_jobs ?? 0;
-            const hasError = item?.error_message || item?.last_error;
+            const item: SourceHealthItem = healthData.find((h) => h.source === platform) || sourceItem;
+            const meta = getMetaForSource(platform);
+            const activeJobs = item.active_jobs ?? item.total_active_jobs ?? 0;
+            const hasError = item.error_message || item.last_error;
 
             return (
               <div

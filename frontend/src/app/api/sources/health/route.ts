@@ -4,7 +4,9 @@ import { supabaseFetch } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const KNOWN_SOURCES = ['GREENHOUSE', 'ASHBY', 'LEVER', 'WORKDAY', 'WORKABLE', 'APPLYTOJOB', 'JOBVITE', 'ICIMS', 'JOBRIGHT'];
+import { ALL_ATS_PLATFORMS } from '@/lib/jobUrls';
+
+const KNOWN_SOURCES = ALL_ATS_PLATFORMS.map((p) => p.id);
 
 export async function GET() {
   try {

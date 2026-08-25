@@ -41,6 +41,59 @@ export interface ATSInfo {
   isDirect: boolean;
 }
 
+export interface ATSPlatformDefinition {
+  id: string;
+  label: string;
+  color: string;
+  isDirect: boolean;
+}
+
+export const ALL_ATS_PLATFORMS: ATSPlatformDefinition[] = [
+  { id: "JOBRIGHT", label: "Jobright Direct", color: "#f97316", isDirect: false },
+  { id: "GREENHOUSE", label: "Greenhouse", color: "#22c55e", isDirect: true },
+  { id: "ASHBY", label: "Ashby", color: "#8b5cf6", isDirect: true },
+  { id: "LEVER", label: "Lever", color: "#06b6d4", isDirect: true },
+  { id: "WORKDAY", label: "Workday", color: "#f59e0b", isDirect: true },
+  { id: "SMARTRECRUITERS", label: "SmartRecruiters", color: "#14b8a6", isDirect: true },
+  { id: "RIPPLING", label: "Rippling", color: "#9333ea", isDirect: true },
+  { id: "RECRUITERFLOW", label: "Recruiterflow", color: "#0ea5e9", isDirect: true },
+  { id: "WORKABLE", label: "Workable", color: "#6366f1", isDirect: true },
+  { id: "APPLYTOJOB", label: "ApplyToJob / JazzHR", color: "#ec4899", isDirect: true },
+  { id: "JOBVITE", label: "Jobvite", color: "#3b82f6", isDirect: true },
+  { id: "ICIMS", label: "iCIMS", color: "#10b981", isDirect: true },
+  { id: "GUSTO_ATS", label: "Gusto ATS", color: "#ea580c", isDirect: true },
+  { id: "MANATAL", label: "Manatal", color: "#0284c7", isDirect: true },
+  { id: "RECRUITEE", label: "Recruitee", color: "#16a34a", isDirect: true },
+  { id: "BREEZY", label: "Breezy HR", color: "#059669", isDirect: true },
+  { id: "BAMBOOHR", label: "BambooHR", color: "#84cc16", isDirect: true },
+  { id: "PERSONIO", label: "Personio", color: "#4f46e5", isDirect: true },
+  { id: "PINPOINT", label: "Pinpoint", color: "#2563eb", isDirect: true },
+  { id: "TEAMTAILOR", label: "Teamtailor", color: "#e11d48", isDirect: true },
+  { id: "KULA", label: "Kula", color: "#7c3aed", isDirect: true },
+  { id: "GEM", label: "Gem", color: "#db2777", isDirect: true },
+  { id: "ORACLE_CLOUD", label: "Oracle Cloud", color: "#dc2626", isDirect: true },
+  { id: "ADP", label: "ADP", color: "#b91c1c", isDirect: true },
+  { id: "CATS", label: "CATS ATS", color: "#ca8a04", isDirect: true },
+  { id: "TALEO", label: "Taleo", color: "#64748b", isDirect: true },
+  { id: "JOBDIVA", label: "JobDiva", color: "#64748b", isDirect: true },
+  { id: "BULLHORN", label: "Bullhorn", color: "#64748b", isDirect: true },
+];
+
+export function getPlatformMeta(sourceId?: string | null): ATSPlatformDefinition {
+  if (!sourceId) {
+    return { id: "OTHER", label: "External Career Page", color: "#64748b", isDirect: true };
+  }
+  const clean = sourceId.toUpperCase().trim();
+  const found = ALL_ATS_PLATFORMS.find((p) => p.id === clean);
+  if (found) return found;
+  return {
+    id: clean,
+    label: clean.charAt(0) + clean.slice(1).toLowerCase().replace(/_/g, " "),
+    color: "#64748b",
+    isDirect: true,
+  };
+}
+
 /**
  * Identify the ATS platform from a given URL or source string
  */

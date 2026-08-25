@@ -19,28 +19,9 @@ const RELEVANT_TITLE_PATTERNS = [
   "*Head of*", "*Director*", "*Manager*",
 ];
 
-const KNOWN_SOURCES = [
-  "JOBRIGHT",
-  "GREENHOUSE",
-  "ASHBY",
-  "LEVER",
-  "WORKDAY",
-  "WORKABLE",
-  "APPLYTOJOB",
-  "JOBVITE",
-  "ICIMS",
-  "SMARTRECRUITERS",
-  "RIPPLING",
-  "RECRUITERFLOW",
-  "GUSTO_ATS",
-  "MANATAL",
-  "RECRUITEE",
-  "BREEZY",
-  "BAMBOOHR",
-  "CATS",
-  "JOBDIVA",
-  "BULLHORN",
-];
+import { ALL_ATS_PLATFORMS } from "@/lib/jobUrls";
+
+const KNOWN_SOURCES = ALL_ATS_PLATFORMS.map((p) => p.id);
 
 export async function GET(req: NextRequest) {
   try {

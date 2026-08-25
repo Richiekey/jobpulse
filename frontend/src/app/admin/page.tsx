@@ -41,6 +41,7 @@ import {
   LineChart,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { ALL_ATS_PLATFORMS } from "@/lib/jobUrls";
 
 /* ── Reusable Theme & Glassmorphic Styles ───────────────────────── */
 const S = {
@@ -709,17 +710,16 @@ export default function AdminDashboardPage() {
                 gap: 14,
               }}
             >
-              {[
-                { name: "JOBRIGHT", label: "Jobright Direct", color: "#3b82f6" },
-                { name: "GREENHOUSE", label: "Greenhouse", color: "#10b981" },
-                { name: "ASHBY", label: "Ashby", color: "#a855f7" },
-                { name: "LEVER", label: "Lever", color: "#06b6d4" },
-                { name: "WORKDAY", label: "Workday", color: "#f59e0b" },
-                { name: "WORKABLE", label: "Workable / JazzHR", color: "#ef4444" },
-                { name: "APPLYTOJOB", label: "ApplyToJob", color: "#ec4899" },
-                { name: "JOBVITE", label: "Jobvite", color: "#14b8a6" },
-              ].map((src) => {
-                const count = metrics?.sourceBreakdown?.[src.name] || 0;
+              {[...ALL_ATS_PLATFORMS]
+                .map((p) => ({
+                  name: p.id,
+                  label: p.label,
+                  color: p.color,
+                  count: metrics?.sourceBreakdown?.[p.id] || 0,
+                }))
+                .sort((a, b) => b.count - a.count)
+                .map((src) => {
+                const count = src.count;
                 const allSourcesTotal = Object.values(metrics?.sourceBreakdown || {}).reduce((a: any, b: any) => a + Number(b), 0) as number || metrics?.activeTotal || 1;
                 const pct = Math.min(100, Math.round((count / Math.max(allSourcesTotal, 1)) * 100)) || (count > 0 ? 1 : 0);
                 const health = metrics?.sourcesHealth?.[src.name];
