@@ -157,6 +157,16 @@ class Database:
         if not jobs or not self.connected:
             return {"inserted": 0, "failed": 0}
 
+        # Deduplicate within input list to prevent Postgres 21000 duplicate key in same command error
+        unique_jobs: List[NormalizedJob] = []
+        seen_keys = set()
+        for j in jobs:
+            key = (j.source.value, str(j.source_job_id))
+            if key not in seen_keys:
+                seen_keys.add(key)
+                unique_jobs.append(j)
+        jobs = unique_jobs
+
         stats = {"inserted": 0, "failed": 0}
 
         for i in range(0, len(jobs), batch_size):
