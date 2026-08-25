@@ -63,14 +63,19 @@ async def run_scrape(db: Optional[Database] = None):
                 # Filter: only US, Canada, EU, or remote jobs + strictly within 30 days
                 pre_filter = len(jobs)
                 cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
-                jobs = [
-                    j for j in jobs
-                    if is_allowed_location(j.location)
-                    and (
+                is_agency = bool(company.get("is_staffing_agency"))
+
+                filtered_jobs = []
+                for j in jobs:
+                    if is_agency:
+                        j.is_staffing_agency = True
+                    if is_allowed_location(j.location) and (
                         j.posted_at is None
                         or (j.posted_at.replace(tzinfo=timezone.utc) if j.posted_at.tzinfo is None else j.posted_at) >= cutoff_date
-                    )
-                ]
+                    ):
+                        filtered_jobs.append(j)
+
+                jobs = filtered_jobs
                 filtered_out = pre_filter - len(jobs)
                 if filtered_out > 0:
                     logger.info("jobs_filtered_location_or_age", company=comp_name, kept=len(jobs), filtered=filtered_out)

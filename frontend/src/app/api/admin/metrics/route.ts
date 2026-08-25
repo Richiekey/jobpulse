@@ -30,6 +30,16 @@ const KNOWN_SOURCES = [
   "JOBVITE",
   "ICIMS",
   "SMARTRECRUITERS",
+  "RIPPLING",
+  "RECRUITERFLOW",
+  "GUSTO_ATS",
+  "MANATAL",
+  "RECRUITEE",
+  "BREEZY",
+  "BAMBOOHR",
+  "CATS",
+  "JOBDIVA",
+  "BULLHORN",
 ];
 
 export async function GET(req: NextRequest) {

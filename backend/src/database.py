@@ -58,17 +58,11 @@ class Database:
 
     # ── Jobs ────────────────────────────────────────────────────
 
-    async def upsert_job(self, job: NormalizedJob) -> str:
-        """
-        Upserts job by (source, source_job_id) via PostgREST.
-        Returns 'inserted', 'updated', or 'skipped'.
-        """
-        if not self.connected:
-            return "inserted"
-
+    @staticmethod
+    def _serialize_job(job: NormalizedJob) -> Dict[str, Any]:
+        """Convert NormalizedJob into dictionary suitable for Supabase PostgREST payload."""
         locations_data = [loc.model_dump() for loc in job.locations] if job.locations else []
-
-        data = {
+        return {
             "source": job.source.value,
             "source_job_id": job.source_job_id,
             "source_company_id": job.source_company_id,
@@ -92,6 +86,8 @@ class Database:
             "salary_period": job.salary_period,
             "job_url": job.job_url,
             "apply_url": job.apply_url,
+            "apply_url_original": job.apply_url_original,
+            "is_staffing_agency": job.is_staffing_agency,
             "posted_at": (job.posted_at or datetime.now(timezone.utc)).isoformat(),
             "updated_at": (job.updated_at or datetime.now(timezone.utc)).isoformat(),
             "scraped_at": job.scraped_at.isoformat() if job.scraped_at else datetime.now(timezone.utc).isoformat(),
@@ -101,6 +97,16 @@ class Database:
             "skills": extract_skills(job.description or ""),
             "role_category": detect_role_category(job.title or ""),
         }
+
+    async def upsert_job(self, job: NormalizedJob) -> str:
+        """
+        Upserts job by (source, source_job_id) via PostgREST.
+        Returns 'inserted', 'updated', or 'skipped'.
+        """
+        if not self.connected:
+            return "inserted"
+
+        data = self._serialize_job(job)
 
         # Check if job already exists to determine insert vs update
         check_resp = await self.client.get(
@@ -155,41 +161,7 @@ class Database:
 
         for i in range(0, len(jobs), batch_size):
             batch = jobs[i:i + batch_size]
-            payload = []
-            for job in batch:
-                payload.append({
-                    "source": job.source.value,
-                    "source_job_id": job.source_job_id,
-                    "source_company_id": job.source_company_id,
-                    "title": job.title,
-                    "company_name": job.company_name,
-                    "company_url": job.company_url,
-                    "location": job.location,
-                    "locations": [loc.model_dump() for loc in job.locations] if job.locations else [],
-                    "country": job.country,
-                    "city": job.city,
-                    "remote_type": job.remote_type.value,
-                    "employment_type": job.employment_type.value if job.employment_type else None,
-                    "department": job.department,
-                    "team": job.team,
-                    "description": job.description,
-                    "requirements": job.requirements,
-                    "responsibilities": job.responsibilities,
-                    "salary_min": float(job.salary_min) if job.salary_min else None,
-                    "salary_max": float(job.salary_max) if job.salary_max else None,
-                    "salary_currency": job.salary_currency,
-                    "salary_period": job.salary_period,
-                    "job_url": job.job_url,
-                    "apply_url": job.apply_url,
-                    "posted_at": (job.posted_at or datetime.now(timezone.utc)).isoformat(),
-                    "updated_at": (job.updated_at or datetime.now(timezone.utc)).isoformat(),
-                    "scraped_at": job.scraped_at.isoformat() if job.scraped_at else datetime.now(timezone.utc).isoformat(),
-                    "status": job.status.value,
-                    "content_hash": job.content_hash,
-                    "deduplication_key": job.deduplication_key,
-                    "skills": extract_skills(job.description or ""),
-                    "role_category": detect_role_category(job.title or ""),
-                })
+            payload = [self._serialize_job(job) for job in batch]
 
             resp = await self.client.post(
                 f"{self.rest_url}/jobs?on_conflict=source,source_job_id",
@@ -213,7 +185,7 @@ class Database:
             return [], 0
 
         query_params: Dict[str, str] = {
-            "select": "id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,source,posted_at,created_at,skills,role_category",
+            "select": "id,title,company_name,location,remote_type,employment_type,department,salary_min,salary_max,salary_currency,salary_period,job_url,apply_url,apply_url_original,is_staffing_agency,source,posted_at,created_at,skills,role_category",
             "status": f"eq.{params.status.value}",
             "limit": str(params.per_page),
             "offset": str((params.page - 1) * params.per_page),

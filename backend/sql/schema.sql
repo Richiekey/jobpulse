@@ -26,7 +26,10 @@ END $$;
 DO $$ BEGIN
     CREATE TYPE ats_platform AS ENUM (
         'GREENHOUSE', 'ASHBY', 'LEVER', 'WORKABLE', 'APPLYTOJOB', 'JOBVITE', 'RECRUITEE',
-        'TEAMTAILOR', 'SMARTRECRUITERS', 'BAMBOOHR', 'ICIMS', 'JOBDIVA', 'WORKDAY', 'JOBRIGHT', 'UNKNOWN'
+        'TEAMTAILOR', 'SMARTRECRUITERS', 'BAMBOOHR', 'ICIMS', 'JOBDIVA', 'WORKDAY', 'JOBRIGHT',
+        'RIPPLING', 'RECRUITERFLOW', 'GUSTO_ATS', 'MANATAL', 'BREEZY', 'CATS', 'BULLHORN',
+        'PERSONIO', 'PINPOINT', 'KULA', 'GEM', 'ORACLE_CLOUD', 'TALEO', 'ADP', 'JOBSCORE', 'TRINET',
+        'UNKNOWN'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
@@ -34,17 +37,18 @@ END $$;
 
 -- COMPANIES TABLE
 CREATE TABLE IF NOT EXISTS companies (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name            TEXT NOT NULL,
-    website         TEXT,
-    career_url      TEXT,
-    ats             ats_platform NOT NULL DEFAULT 'UNKNOWN',
-    ats_identifier  TEXT NOT NULL,              -- board token / slug
-    country         TEXT,
-    active          BOOLEAN NOT NULL DEFAULT true,
-    last_checked    TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name                TEXT NOT NULL,
+    website             TEXT,
+    career_url          TEXT,
+    ats                 ats_platform NOT NULL DEFAULT 'UNKNOWN',
+    ats_identifier      TEXT NOT NULL,              -- board token / slug
+    country             TEXT,
+    is_staffing_agency  BOOLEAN NOT NULL DEFAULT false,
+    active              BOOLEAN NOT NULL DEFAULT true,
+    last_checked        TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (ats, ats_identifier)
 );
 
@@ -74,6 +78,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     salary_period       TEXT,                   -- 'YEARLY', 'MONTHLY', 'HOURLY'
     job_url             TEXT,
     apply_url           TEXT,
+    apply_url_original  TEXT,                   -- direct company ATS apply URL if from aggregator
+    is_staffing_agency  BOOLEAN NOT NULL DEFAULT false,
     posted_at           TIMESTAMPTZ,
     updated_at          TIMESTAMPTZ DEFAULT now(),
     scraped_at          TIMESTAMPTZ NOT NULL DEFAULT now(),

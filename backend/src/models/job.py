@@ -35,6 +35,8 @@ class NormalizedJob(BaseModel):
     salary_period: Optional[str] = None  # YEARLY, MONTHLY, HOURLY
     job_url: Optional[str] = None
     apply_url: Optional[str] = None
+    apply_url_original: Optional[str] = None
+    is_staffing_agency: bool = False
     posted_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     scraped_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

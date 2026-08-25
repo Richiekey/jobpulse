@@ -8,6 +8,7 @@ import {
   CheckCircle2, Trash2, Edit3, Save, X, Building2, MapPin,
   Clock, DollarSign, Download, ArrowLeft, Briefcase, Share2, Sparkles, FileText
 } from "lucide-react";
+import { identifyAtsPlatform, resolveDirectApplyUrl } from "@/lib/jobUrls";
 
 interface Job {
   id: string;
@@ -26,6 +27,8 @@ interface Job {
   salary_period?: string;
   job_url: string;
   apply_url?: string;
+  apply_url_original?: string;
+  is_staffing_agency?: boolean;
   source: string;
   posted_at?: string;
   created_at: string;
@@ -688,57 +691,37 @@ export default function SavedJobsPage() {
 
               {/* Direct Links section */}
               {(() => {
-                const isJobright = selectedJob.source === "JOBRIGHT";
-                const hasDistinctAts = selectedJob.apply_url && selectedJob.job_url && selectedJob.apply_url !== selectedJob.job_url && !selectedJob.apply_url.includes("jobright.ai");
+                const staticResolved = resolveDirectApplyUrl(selectedJob.apply_url || selectedJob.job_url, selectedJob.description, selectedJob.apply_url_original);
+                const effectiveUrl = selectedJob.apply_url_original || (staticResolved && !staticResolved.includes("jobright.ai") ? staticResolved : null);
+                const atsInfo = identifyAtsPlatform(effectiveUrl || selectedJob.apply_url || selectedJob.job_url);
+                const isJobright = selectedJob.source === "JOBRIGHT" || (selectedJob.apply_url || "").includes("jobright.ai");
+                const hasDirectUrl = !!effectiveUrl && effectiveUrl !== selectedJob.apply_url;
 
-                let atsName = "Company Site";
-                const linkToCheck = selectedJob.apply_url || selectedJob.job_url || "";
-                if (selectedJob.source === "GREENHOUSE" || linkToCheck.includes("greenhouse.io")) {
-                  atsName = "Greenhouse";
-                } else if (selectedJob.source === "ASHBY" || linkToCheck.includes("ashbyhq.com")) {
-                  atsName = "Ashby";
-                } else if (selectedJob.source === "WORKDAY" || linkToCheck.includes("myworkdayjobs.com")) {
-                  atsName = "Workday";
-                } else if (selectedJob.source === "LEVER" || linkToCheck.includes("lever.co")) {
-                  atsName = "Lever";
-                } else if (selectedJob.source === "WORKABLE" || linkToCheck.includes("workable.com")) {
-                  atsName = "Workable";
-                } else if (selectedJob.source === "APPLYTOJOB" || linkToCheck.includes("applytojob.com")) {
-                  atsName = "JazzHR";
-                } else if (selectedJob.source === "ICIMS" || linkToCheck.includes("icims.com")) {
-                  atsName = "iCIMS";
-                } else if (selectedJob.source === "JOBVITE" || linkToCheck.includes("jobvite.com")) {
-                  atsName = "Jobvite";
-                }
-
-                const primaryApplyUrl = hasDistinctAts ? selectedJob.apply_url : (selectedJob.apply_url || selectedJob.job_url);
-                const primaryButtonText = hasDistinctAts 
-                  ? `Apply on ${atsName}` 
-                  : (isJobright ? "Apply on Jobright" : `Apply on ${atsName}`);
+                const primaryApplyUrl = effectiveUrl || selectedJob.apply_url || selectedJob.job_url || "";
 
                 return (
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                    <div className="text-[11px] font-bold text-white uppercase tracking-wider">
-                      {hasDistinctAts ? `Direct ATS Application Link (${atsName})` : (isJobright ? "Job Application Link (via Jobright)" : `${atsName} Application Link`)}
+                    <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                      ✓ {hasDirectUrl ? `Original Apply (Company / ${atsInfo.label})` : (isJobright ? "Job Application Link (via Jobright)" : `${atsInfo.label} Application Link`)}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <a
                         href={primaryApplyUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-indigo-400 hover:underline flex items-center justify-between p-2 rounded-lg bg-black/30"
+                        className="text-indigo-400 hover:underline flex items-center justify-between p-2 rounded-lg bg-black/30 text-xs"
                       >
                         <span className="truncate">{primaryApplyUrl}</span>
                         <ExternalLink size={12} className="shrink-0 ml-2" />
                       </a>
-                      {hasDistinctAts && isJobright && selectedJob.job_url && (
+                      {isJobright && (selectedJob.job_url || selectedJob.apply_url) && (
                         <a
-                          href={selectedJob.job_url}
+                          href={selectedJob.job_url || selectedJob.apply_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-muted hover:text-white flex items-center justify-between p-2 rounded-lg bg-black/20"
+                          className="text-orange-400 hover:underline flex items-center justify-between p-2 rounded-lg bg-black/20 text-xs"
                         >
-                          <span className="truncate">Jobright Listing: {selectedJob.job_url}</span>
+                          <span className="truncate">Jobright Listing: {selectedJob.job_url || selectedJob.apply_url}</span>
                           <ExternalLink size={12} className="shrink-0 ml-2" />
                         </a>
                       )}

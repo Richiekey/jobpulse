@@ -310,7 +310,6 @@ class JobrightAdapter(BaseAdapter):
 
         # Regex-extract known ATS URLs from the description
         if not direct_apply_url and description:
-            import re
             ats_patterns = [
                 r'https?://(?:boards\.)?greenhouse\.io/[a-zA-Z0-9_\-\./]+',
                 r'https?://jobs\.ashbyhq\.com/[a-zA-Z0-9_\-\./]+',
@@ -347,7 +346,8 @@ class JobrightAdapter(BaseAdapter):
             salary_currency=salary_info.get("currency"),
             salary_period=salary_info.get("period"),
             job_url=job_url,
-            apply_url=apply_url_final,
+            apply_url=job_url,
+            apply_url_original=direct_apply_url,
             posted_at=posted_at,
             status=JobStatus.ACTIVE
         )

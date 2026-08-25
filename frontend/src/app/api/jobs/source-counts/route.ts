@@ -12,9 +12,12 @@ export async function GET() {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Use RPC or raw query to get counts grouped by source
-    // PostgREST doesn't support GROUP BY, so we query each source separately
-    const sources = ["JOBRIGHT", "GREENHOUSE", "ASHBY", "WORKDAY", "LEVER", "WORKABLE", "ICIMS", "APPLYTOJOB", "JOBVITE", "SMARTRECRUITERS"];
+    const sources = [
+      "JOBRIGHT", "GREENHOUSE", "ASHBY", "WORKDAY", "LEVER", "WORKABLE", 
+      "ICIMS", "APPLYTOJOB", "JOBVITE", "SMARTRECRUITERS", "RIPPLING", 
+      "RECRUITERFLOW", "GUSTO_ATS", "MANATAL", "RECRUITEE", "BREEZY", 
+      "BAMBOOHR", "CATS", "JOBDIVA", "BULLHORN"
+    ];
 
     const counts: Record<string, number> = {};
 

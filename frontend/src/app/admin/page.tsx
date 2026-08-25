@@ -720,8 +720,8 @@ export default function AdminDashboardPage() {
                 { name: "JOBVITE", label: "Jobvite", color: "#14b8a6" },
               ].map((src) => {
                 const count = metrics?.sourceBreakdown?.[src.name] || 0;
-                const total = metrics?.activeTotal || metrics?.warehouseTotal || 1;
-                const pct = Math.round((count / total) * 100) || (count > 0 ? 1 : 0);
+                const allSourcesTotal = Object.values(metrics?.sourceBreakdown || {}).reduce((a: any, b: any) => a + Number(b), 0) as number || metrics?.activeTotal || 1;
+                const pct = Math.min(100, Math.round((count / Math.max(allSourcesTotal, 1)) * 100)) || (count > 0 ? 1 : 0);
                 const health = metrics?.sourcesHealth?.[src.name];
                 const isHealthy = count > 0 || health?.status === "HEALTHY";
 

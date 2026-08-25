@@ -1,17 +1,48 @@
 /**
  * Utility functions for resolving direct ATS application URLs,
- * detecting ATS platforms, and cleaning aggregator redirect URLs.
+ * detecting ATS platforms, and managing dual apply links.
  */
 
+export type ATSPlatformKey =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'workday'
+  | 'applytojob'
+  | 'jobvite'
+  | 'icims'
+  | 'smartrecruiters'
+  | 'rippling'
+  | 'recruiterflow'
+  | 'gusto_ats'
+  | 'manatal'
+  | 'recruitee'
+  | 'breezy'
+  | 'bamboohr'
+  | 'cats'
+  | 'jobdiva'
+  | 'bullhorn'
+  | 'oracle_cloud'
+  | 'taleo'
+  | 'adp'
+  | 'personio'
+  | 'kula'
+  | 'gem'
+  | 'teamtailor'
+  | 'pinpoint'
+  | 'workable'
+  | 'jobright'
+  | 'other';
+
 export interface ATSInfo {
-  platform: 'greenhouse' | 'lever' | 'ashby' | 'workday' | 'applytojob' | 'jobvite' | 'icims' | 'smartrecruiters' | 'workable' | 'jobright' | 'other';
+  platform: ATSPlatformKey;
   label: string;
   badgeColor: string;
   isDirect: boolean;
 }
 
 /**
- * Identify the ATS platform from a given URL
+ * Identify the ATS platform from a given URL or source string
  */
 export function identifyAtsPlatform(url: string | undefined | null): ATSInfo {
   if (!url) {
@@ -44,6 +75,60 @@ export function identifyAtsPlatform(url: string | undefined | null): ATSInfo {
   if (u.includes('smartrecruiters.com')) {
     return { platform: 'smartrecruiters', label: 'SmartRecruiters', badgeColor: '#14b8a6', isDirect: true };
   }
+  if (u.includes('ats.rippling.com') || u.includes('rippling.com')) {
+    return { platform: 'rippling', label: 'Rippling', badgeColor: '#9333ea', isDirect: true };
+  }
+  if (u.includes('recruiterflow.com')) {
+    return { platform: 'recruiterflow', label: 'Recruiterflow', badgeColor: '#0ea5e9', isDirect: true };
+  }
+  if (u.includes('jobs.gusto.com')) {
+    return { platform: 'gusto_ats', label: 'Gusto ATS', badgeColor: '#ea580c', isDirect: true };
+  }
+  if (u.includes('careers-page.com')) {
+    return { platform: 'manatal', label: 'Manatal', badgeColor: '#0284c7', isDirect: true };
+  }
+  if (u.includes('recruitee.com')) {
+    return { platform: 'recruitee', label: 'Recruitee', badgeColor: '#16a34a', isDirect: true };
+  }
+  if (u.includes('breezy.hr')) {
+    return { platform: 'breezy', label: 'Breezy HR', badgeColor: '#059669', isDirect: true };
+  }
+  if (u.includes('bamboohr.com')) {
+    return { platform: 'bamboohr', label: 'BambooHR', badgeColor: '#84cc16', isDirect: true };
+  }
+  if (u.includes('catsone.com')) {
+    return { platform: 'cats', label: 'CATS ATS', badgeColor: '#ca8a04', isDirect: true };
+  }
+  if (u.includes('jobdiva.com')) {
+    return { platform: 'jobdiva', label: 'JobDiva (Staffing)', badgeColor: '#64748b', isDirect: true };
+  }
+  if (u.includes('bullhorn')) {
+    return { platform: 'bullhorn', label: 'Bullhorn (Staffing)', badgeColor: '#64748b', isDirect: true };
+  }
+  if (u.includes('oraclecloud.com')) {
+    return { platform: 'oracle_cloud', label: 'Oracle Cloud', badgeColor: '#dc2626', isDirect: true };
+  }
+  if (u.includes('taleo.net')) {
+    return { platform: 'taleo', label: 'Taleo (Staffing)', badgeColor: '#64748b', isDirect: true };
+  }
+  if (u.includes('adp.com')) {
+    return { platform: 'adp', label: 'ADP', badgeColor: '#b91c1c', isDirect: true };
+  }
+  if (u.includes('personio.com') || u.includes('personio.de')) {
+    return { platform: 'personio', label: 'Personio', badgeColor: '#4f46e5', isDirect: true };
+  }
+  if (u.includes('kula.ai')) {
+    return { platform: 'kula', label: 'Kula', badgeColor: '#7c3aed', isDirect: true };
+  }
+  if (u.includes('gem.com')) {
+    return { platform: 'gem', label: 'Gem', badgeColor: '#db2777', isDirect: true };
+  }
+  if (u.includes('teamtailor.com')) {
+    return { platform: 'teamtailor', label: 'Teamtailor', badgeColor: '#e11d48', isDirect: true };
+  }
+  if (u.includes('pinpointhq.com')) {
+    return { platform: 'pinpoint', label: 'Pinpoint', badgeColor: '#2563eb', isDirect: true };
+  }
   if (u.includes('workable.com') || u.includes('apply.workable.com')) {
     return { platform: 'workable', label: 'Workable', badgeColor: '#6366f1', isDirect: true };
   }
@@ -55,9 +140,13 @@ export function identifyAtsPlatform(url: string | undefined | null): ATSInfo {
 }
 
 /**
- * Resolve direct company ATS URL from an aggregator URL or description text
+ * Resolve direct company ATS URL from an aggregator URL, description text, or apply_url_original
  */
-export function resolveDirectApplyUrl(jobUrl?: string | null, description?: string | null): string {
+export function resolveDirectApplyUrl(jobUrl?: string | null, description?: string | null, applyUrlOriginal?: string | null): string {
+  if (applyUrlOriginal && applyUrlOriginal.trim()) {
+    return applyUrlOriginal.trim();
+  }
+
   if (!jobUrl && !description) return '';
 
   const rawUrl = (jobUrl || '').trim();
@@ -67,27 +156,25 @@ export function resolveDirectApplyUrl(jobUrl?: string | null, description?: stri
     return rawUrl;
   }
 
-  // If it's a Jobright link, look inside the description or URL params for embedded direct links
+  // If it's a Jobright link, look inside the description for embedded direct links
   if (description) {
-    // Check for Greenhouse link in description
-    const ghMatch = description.match(/https?:\/\/(?:boards\.)?greenhouse\.io\/[a-zA-Z0-9_\-\.\/]+/i);
-    if (ghMatch) return ghMatch[0];
+    const patterns = [
+      /https?:\/\/(?:boards\.)?greenhouse\.io\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/jobs\.ashbyhq\.com\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/jobs\.lever\.co\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/[a-zA-Z0-9_\-\.]+\.myworkdayjobs\.com\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/jobs\.smartrecruiters\.com\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/ats\.rippling\.com\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/[a-zA-Z0-9_\-\.]+\.applytojob\.com\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/recruiterflow\.com\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/[a-zA-Z0-9_\-\.]+\.workable\.com\/[a-zA-Z0-9_\-\.\/]+/i,
+      /https?:\/\/[a-zA-Z0-9_\-\.]+\.icims\.com\/[a-zA-Z0-9_\-\.\/]+/i,
+    ];
 
-    // Check for Ashby link in description
-    const ashbyMatch = description.match(/https?:\/\/jobs\.ashbyhq\.com\/[a-zA-Z0-9_\-\.\/]+/i);
-    if (ashbyMatch) return ashbyMatch[0];
-
-    // Check for Lever link in description
-    const leverMatch = description.match(/https?:\/\/jobs\.lever\.co\/[a-zA-Z0-9_\-\.\/]+/i);
-    if (leverMatch) return leverMatch[0];
-
-    // Check for Workday link in description
-    const wdMatch = description.match(/https?:\/\/[a-zA-Z0-9_\-\.]+\.myworkdayjobs\.com\/[a-zA-Z0-9_\-\.\/]+/i);
-    if (wdMatch) return wdMatch[0];
-
-    // Check for SmartRecruiters link in description
-    const srMatch = description.match(/https?:\/\/jobs\.smartrecruiters\.com\/[a-zA-Z0-9_\-\.\/]+/i);
-    if (srMatch) return srMatch[0];
+    for (const pat of patterns) {
+      const match = description.match(pat);
+      if (match) return match[0];
+    }
 
     // Check for general URL in description
     const urlMatch = description.match(/https?:\/\/[^\s\<\>"\']+/i);
@@ -97,4 +184,26 @@ export function resolveDirectApplyUrl(jobUrl?: string | null, description?: stri
   }
 
   return rawUrl || '';
+}
+
+/**
+ * Returns clean dual apply URLs for a job object
+ */
+export function getDualApplyUrls(job: {
+  source?: string | null;
+  job_url?: string | null;
+  apply_url?: string | null;
+  apply_url_original?: string | null;
+  description?: string | null;
+}) {
+  const isJobright = (job.source || '').toUpperCase() === 'JOBRIGHT' || (job.apply_url || '').includes('jobright.ai');
+  const directAtsUrl = resolveDirectApplyUrl(job.apply_url, job.description, job.apply_url_original);
+  const aggregatorUrl = isJobright ? (job.job_url || job.apply_url || '') : null;
+
+  return {
+    isDual: Boolean(isJobright && directAtsUrl && directAtsUrl !== aggregatorUrl),
+    directAtsUrl: directAtsUrl || job.apply_url || job.job_url || '',
+    aggregatorUrl: aggregatorUrl,
+    directAtsInfo: identifyAtsPlatform(directAtsUrl),
+  };
 }
