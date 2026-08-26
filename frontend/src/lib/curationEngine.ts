@@ -164,7 +164,6 @@ export function scoreJob(job: RawJob, criteria: CurationCriteria): ScoredJob {
     if (daysOld <= 2) freshnessScore = 20;
     else if (daysOld <= 7) freshnessScore = 15;
     else if (daysOld <= 14) freshnessScore = 10;
-    else if (daysOld <= 30) freshnessScore = 5;
   } else {
     freshnessScore = 10;
   }

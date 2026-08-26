@@ -60,9 +60,9 @@ async def run_scrape(db: Optional[Database] = None):
                 jobs = await adapter.discover_and_normalize(comp_name, ats_identifier)
                 stats["found"] = len(jobs)
 
-                # Filter: only US, Canada, EU, or remote jobs + strictly within 30 days
+                # Filter: only US, Canada, EU, or remote jobs + strictly within 14 days (2 weeks)
                 pre_filter = len(jobs)
-                cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
+                cutoff_date = datetime.now(timezone.utc) - timedelta(days=14)
                 is_agency = bool(company.get("is_staffing_agency"))
 
                 filtered_jobs = []
@@ -99,9 +99,9 @@ async def run_scrape(db: Optional[Database] = None):
                 await db.complete_run(run_id, "FAILED", stats, error_message=str(ce))
 
     finally:
-        # Clean up jobs older than 30 days
+        # Clean up jobs older than 14 days (2 weeks)
         try:
-            deleted = await db.cleanup_old_jobs(max_age_days=30)
+            deleted = await db.cleanup_old_jobs(max_age_days=14)
             if deleted > 0:
                 logger.info("cleanup_completed", deleted_jobs=deleted)
         except Exception as cleanup_err:

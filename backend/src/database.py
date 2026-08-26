@@ -493,40 +493,39 @@ class Database:
 
     # ── Cleanup ─────────────────────────────────────────────────
 
-    async def cleanup_old_jobs(self, max_age_days: int = 30) -> int:
-        """Delete jobs older than max_age_days. Returns count of deleted jobs."""
+    async def cleanup_old_jobs(self, max_age_days: int = 14) -> int:
+        """Delete jobs older than max_age_days (default: 14 days / 2 weeks).
+        Returns count of deleted jobs."""
         if not self.connected:
             return 0
 
         cutoff = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
 
-        # First count how many will be deleted
-        count_resp = await self.client.get(
-            f"{self.rest_url}/jobs",
-            params={"select": "id", "created_at": f"lt.{cutoff}"},
-            headers={**self.headers, "Prefer": "count=exact"},
-        )
-        total = 0
-        content_range = count_resp.headers.get("content-range", "")
-        if "/" in content_range:
-            try:
-                total = int(content_range.split("/")[1])
-            except (ValueError, IndexError):
-                pass
-
-        if total == 0:
-            logger.info("cleanup_no_old_jobs", cutoff=cutoff)
-            return 0
-
         # Delete old jobs where posted_at < cutoff or (posted_at is null and created_at < cutoff)
         resp = await self.client.delete(
             f"{self.rest_url}/jobs",
             params={"or": f"(posted_at.lt.{cutoff},and(posted_at.is.null,created_at.lt.{cutoff}))"},
+            headers={**self.headers, "Prefer": "return=representation,count=exact"},
         )
 
         if resp.status_code < 300:
-            logger.info("cleanup_old_jobs_complete", cutoff=cutoff)
-            return 1
+            deleted_count = 0
+            content_range = resp.headers.get("content-range", "")
+            if "/" in content_range:
+                try:
+                    deleted_count = int(content_range.split("/")[1])
+                except (ValueError, IndexError):
+                    try:
+                        deleted_count = len(resp.json())
+                    except Exception:
+                        pass
+            else:
+                try:
+                    deleted_count = len(resp.json())
+                except Exception:
+                    pass
+            logger.info("cleanup_old_jobs_complete", cutoff=cutoff, deleted=deleted_count, max_age_days=max_age_days)
+            return deleted_count
         else:
             logger.error("cleanup_old_jobs_failed", status=resp.status_code, body=resp.text[:200])
             return 0

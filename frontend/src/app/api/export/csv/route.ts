@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const limit = Math.min(parseInt(sp.get('limit') || '5000', 10), 10000);
 
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
   const params: Record<string, string> = {
     select: SELECT_FIELDS,
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     order: 'posted_at.desc.nullslast,created_at.desc',
   };
 
-  const freshnessCond = `or(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`;
+  const freshnessCond = `or(posted_at.gte.${twoWeeksAgo},and(posted_at.is.null,created_at.gte.${twoWeeksAgo}))`;
 
   // Search query
   const q = sp.get('q');
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const term = q.trim();
     params.and = `(${freshnessCond},or(title.ilike.*${term}*,company_name.ilike.*${term}*,location.ilike.*${term}*))`;
   } else {
-    params.or = `(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`;
+    params.or = `(posted_at.gte.${twoWeeksAgo},and(posted_at.is.null,created_at.gte.${twoWeeksAgo}))`;
   }
 
   // Country & Location Filters

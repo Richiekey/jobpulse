@@ -7,11 +7,11 @@ export const revalidate = 0;
 
 /**
  * GET /api/jobs/source-counts
- * Returns the count of active jobs per source (last 30 days).
+ * Returns the count of active jobs per source (last 14 days).
  */
 export async function GET() {
   try {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
     const sources = ALL_ATS_PLATFORMS.map((p) => p.id);
 
@@ -24,7 +24,7 @@ export async function GET() {
           select: "id",
           status: "eq.ACTIVE",
           source: `eq.${src}`,
-          or: `(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`,
+          or: `(posted_at.gte.${twoWeeksAgo},and(posted_at.is.null,created_at.gte.${twoWeeksAgo}))`,
           title: `ilike(any).{*Engineer*,*Developer*,*DevOps*,*SRE*,*QA*,*SDET*,*Full Stack*,*Fullstack*,*Backend*,*Frontend*,*Software*,*Mobile*,*iOS*,*Android*,*Platform*,*Infrastructure*,*Data*,*Machine Learning*,*ML *,*AI *,*Artificial Intelligence*,*NLP*,*LLM*,*Deep Learning*,*Computer Vision*,*Scientist*,*Analytics*,*Security*,*Cyber*,*Cloud*,*Network*,*Product Manager*,*Program Manager*,*TPM*,*Designer*,*UX*,*UI*,*Scrum*,*Agile*,*Account Executive*,*Sales*,*Marketing*,*Operations*,*Financial Analyst*,*Business Analyst*,*Architect*,*Technical*,*Tech Lead*,*CTO*,*VP Engineering*,*Head of*,*Director*,*Manager*}`,
           limit: "1",
         };
