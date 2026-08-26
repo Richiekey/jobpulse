@@ -1109,31 +1109,7 @@ export default function JobsDashboard() {
           ]}
         />
 
-        {/* Search Button */}
-        <button
-          type="button"
-          onClick={handleSearch}
-          style={{
-            height: 44,
-            padding: '0 22px',
-            borderRadius: 12,
-            fontSize: 13,
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            cursor: 'pointer',
-            border: 'none',
-            fontFamily: 'inherit',
-            background: 'linear-gradient(135deg, #6366f1, #818cf8)',
-            color: '#fff',
-            boxShadow: '0 2px 12px rgba(99, 102, 241, 0.3)',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <Search size={14} />
-          <span>Search</span>
-        </button>
+
 
         {/* Reset Filters */}
         {(searchInput || query || locationState.cityOrState || locationState.country !== "ALL" || selectedFunctions.length > 0 || datePosted || remoteType || source || selectedSkills.size > 0) && (
