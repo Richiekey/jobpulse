@@ -685,10 +685,13 @@ export default function JobsDashboard() {
 
   // Debounce searchInput into query (350ms)
   useEffect(() => {
+    const trimmed = searchInput.trim();
+    if (trimmed === query) return; // no-op guard
     const timer = setTimeout(() => {
-      setQuery(searchInput.trim());
+      setQuery(trimmed);
     }, 350);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
   // Job modal
@@ -927,56 +930,29 @@ export default function JobsDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, locationState, selectedFunctions, datePosted, remoteType, source, selectedSkills]);
 
-  // When filters change, reset to page 1
+  // Single effect: when filters change, reset to page 1 and fetch
   useEffect(() => { setPage(1); fetchJobs(1); }, [fetchJobs]);
-  // When page changes (from pagination clicks), fetch that page
-  useEffect(() => { fetchJobs(page); }, [page, fetchJobs]);
 
   const handleSearch = () => {
+    // Immediately commit the search input and let the effect handle the fetch
     setQuery(searchInput.trim());
-    setPage(1);
-    fetchJobs(1);
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === page) return;
     setPage(newPage);
+    fetchJobs(newPage);
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 380, behavior: "smooth" });
     }
   };
 
-  // Company interleaver helper to prevent consecutive duplicates
-  function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T[] {
-    if (!items || items.length <= 1) return items;
-    const map = new Map<string, T[]>();
-    for (const item of items) {
-      const key = (item.company_name || "Unknown").trim().toLowerCase();
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(item);
-    }
-    const result: T[] = [];
-    let remaining = items.length;
-    while (remaining > 0) {
-      for (const [_, queue] of map.entries()) {
-        if (queue.length > 0) {
-          result.push(queue.shift()!);
-          remaining--;
-        }
-      }
-    }
-    return result;
-  }
-
-  // Filter out applied/hidden jobs
-  const visibleJobs = jobs.filter((job) => {
+  // Filter out applied/hidden jobs (server already interleaves companies)
+  const displayedJobs = jobs.filter((job) => {
     if (!showApplied && appliedSet.has(job.id)) return false;
     if (!showHidden && hiddenSet.has(job.id)) return false;
     return true;
   });
-
-  // Display the current page's jobs with company interleaving
-  const displayedJobs = interleaveCompanies(visibleJobs);
 
   // Fetch full job for modal
   const openJobModal = async (job: Job) => {
@@ -1345,7 +1321,7 @@ export default function JobsDashboard() {
             Retry
           </button>
         </div>
-      ) : visibleJobs.length === 0 ? (
+      ) : displayedJobs.length === 0 ? (
         <div className="animate-fade-in-up" style={{ textAlign: "center", padding: "70px 20px", background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", maxWidth: 580, margin: "0 auto" }}>
           <Briefcase size={44} style={{ color: "var(--text-muted)", margin: "0 auto 16px" }} />
           <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px" }}>

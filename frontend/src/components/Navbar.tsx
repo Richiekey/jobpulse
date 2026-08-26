@@ -80,12 +80,7 @@ export function Navbar() {
                 Admin
               </Link>
             )}
-            <Link href="/import" className={`nav-link ${pathname === "/import" ? "active" : ""}`}>
-              Import
-            </Link>
-            <Link href="/health" className={`nav-link ${pathname === "/health" ? "active" : ""}`}>
-              Health
-            </Link>
+            
             {user && (
               <Link href="/applications" className={`nav-link ${pathname === "/applications" ? "active" : ""}`}>
                 Applications

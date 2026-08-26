@@ -6,11 +6,11 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // In-memory cached session
-let cachedSessionId: string | null = "af5f3ceeb49e4aa5ac932f696b158c55";
-let sessionExpiresAt = Date.now() + 1000 * 60 * 60 * 24 * 30; // 30 days
+let cachedSessionId: string | null = null;
+let sessionExpiresAt = 0;
 
-const JOBRIGHT_EMAIL = process.env.JOBRIGHT_EMAIL || "merichie430@gmail.com";
-const JOBRIGHT_PASSWORD = process.env.JOBRIGHT_PASSWORD || "Jobpulse12345";
+const JOBRIGHT_EMAIL = process.env.JOBRIGHT_EMAIL || "";
+const JOBRIGHT_PASSWORD = process.env.JOBRIGHT_PASSWORD || "";
 
 async function getJobrightSession(): Promise<string | null> {
   if (cachedSessionId && Date.now() < sessionExpiresAt) {

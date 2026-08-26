@@ -481,9 +481,13 @@ export default function AdminDashboardPage() {
             {scraping ? "Scraping..." : "Trigger Scrape"}
           </button>
 
-          <Link href="/import" style={S.secondaryBtn()}>
+          <button
+            type="button"
+            onClick={() => document.getElementById('admin-import-section')?.scrollIntoView({ behavior: 'smooth' })}
+            style={S.secondaryBtn()}
+          >
             <Upload size={13} /> Import
-          </Link>
+          </button>
 
           <Link href="/" style={S.secondaryBtn()}>
             View Site <ArrowUpRight size={13} />
@@ -1152,6 +1156,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div
+                id="admin-import-section"
                 style={{
                   padding: 18,
                   borderRadius: 12,
@@ -1161,14 +1166,46 @@ export default function AdminDashboardPage() {
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                   <Upload size={16} style={{ color: "#f472b6" }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc" }}>Direct CSV / JSON Import</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc" }}>Direct URL Import</span>
                 </div>
                 <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 12px", lineHeight: 1.5 }}>
-                  Manually upload batch job listings or paste JSON directly into Supabase.
+                  Paste ATS job board URLs (one per line) to queue them for the next scrape cycle.
+                  Supports Greenhouse, Ashby, Lever, and Workday.
                 </p>
-                <Link href="/import" style={S.secondaryBtn({ padding: "7px 14px", fontSize: 12 })}>
-                  Open Importer <ArrowUpRight size={12} />
-                </Link>
+                <textarea
+                  id="import-urls-textarea"
+                  placeholder={"https://boards.greenhouse.io/company/jobs/123\nhttps://jobs.ashbyhq.com/company/456"}
+                  rows={4}
+                  style={{
+                    width: "100%", padding: 10, borderRadius: 8, fontSize: 12,
+                    background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)",
+                    color: "#e4e4e7", fontFamily: "inherit", resize: "vertical", outline: "none",
+                    marginBottom: 10,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const textarea = document.getElementById('import-urls-textarea') as HTMLTextAreaElement;
+                    const urls = textarea.value.split('\n').map(u => u.trim()).filter(Boolean);
+                    if (!urls.length) return;
+                    try {
+                      const res = await fetch('/api/jobs/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ urls }),
+                      });
+                      const data = await res.json();
+                      alert(`Import complete: ${data.successful} queued, ${data.failed} failed`);
+                      textarea.value = '';
+                    } catch {
+                      alert('Import failed — check console.');
+                    }
+                  }}
+                  style={S.secondaryBtn({ padding: "7px 14px", fontSize: 12 })}
+                >
+                  Queue Import <ArrowUpRight size={12} />
+                </button>
               </div>
             </div>
           </div>
