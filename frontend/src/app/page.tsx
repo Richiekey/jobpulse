@@ -1099,13 +1099,12 @@ export default function JobsDashboard() {
     const selectedList = displayedJobs.filter((j) => bulkSelectedIds.has(j.id));
     const toOpen = selectedList.slice(0, 10);
 
-    showToast(`Opening ${toOpen.length} application tabs in sequence... 🚀`, "info");
+    showToast(`Opening ${toOpen.length} job application tabs... 🚀`, "info");
 
     toOpen.forEach((j, idx) => {
       setTimeout(() => {
         const url = resolveDirectApplyUrl(j.apply_url || j.job_url, j.description, j.apply_url_original) || j.apply_url || j.job_url;
         window.open(url, "_blank", "noopener,noreferrer");
-        toggleApplied(j.id);
       }, idx * 350);
     });
 

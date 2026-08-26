@@ -6,7 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import {
   FileText, Building2, MapPin, Calendar, ExternalLink, Table,
-  CheckCircle2, AlertCircle, Loader2, ArrowLeft, Search, Sparkles
+  CheckCircle2, AlertCircle, Loader2, ArrowLeft, Search, Sparkles,
+  Trash2, RotateCcw, Check
 } from "lucide-react";
 
 interface ApplicationItem {
@@ -30,6 +31,45 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [unmarkingIds, setUnmarkingIds] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "warning" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "info" | "warning" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleUnmarkApplication = async (app: ApplicationItem) => {
+    setUnmarkingIds((prev) => new Set(prev).add(app.id));
+
+    try {
+      // 1. Remove from database
+      const res = await fetch(`/api/sync/sheet?id=${app.id}&userId=${user?.id || ""}&jobId=${app.job_id || ""}`, {
+        method: "DELETE",
+      });
+
+      // 2. Remove from local storage jp_applied
+      if (typeof window !== "undefined" && app.job_id) {
+        try {
+          const appliedList: string[] = JSON.parse(localStorage.getItem("jp_applied") || "[]");
+          const nextApplied = appliedList.filter((id) => id !== app.job_id);
+          localStorage.setItem("jp_applied", JSON.stringify(nextApplied));
+        } catch {}
+      }
+
+      // 3. Update local state
+      setApplications((prev) => prev.filter((a) => a.id !== app.id));
+      showToast(`Unmarked application for ${app.company_name}`, "info");
+    } catch (e: any) {
+      showToast(e?.message || "Failed to unmark application", "warning");
+    } finally {
+      setUnmarkingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(app.id);
+        return next;
+      });
+    }
+  };
 
   const fetchApplications = useCallback(async () => {
     if (!user?.id) return;
@@ -282,9 +322,77 @@ export default function ApplicationsPage() {
                     View Link <ExternalLink size={11} />
                   </a>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => handleUnmarkApplication(app)}
+                  disabled={unmarkingIds.has(app.id)}
+                  className="btn-ghost"
+                  style={{
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    color: "var(--text-muted)",
+                    opacity: unmarkingIds.has(app.id) ? 0.6 : 1,
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--danger)";
+                    e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-muted)";
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                  title="Unmark as applied and remove from application list"
+                >
+                  {unmarkingIds.has(app.id) ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <RotateCcw size={12} />
+                  )}
+                  Unmark
+                </button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="toast-container">
+          <div
+            style={{
+              padding: "10px 18px",
+              borderRadius: 12,
+              background: "rgba(18, 20, 29, 0.94)",
+              backdropFilter: "blur(16px)",
+              border: `1px solid ${
+                toast.type === "success"
+                  ? "rgba(34, 197, 94, 0.4)"
+                  : toast.type === "warning"
+                  ? "rgba(239, 68, 68, 0.4)"
+                  : "rgba(99, 102, 241, 0.4)"
+              }`,
+              color: "#f8fafc",
+              fontSize: 13,
+              fontWeight: 600,
+              boxShadow: "0 12px 30px -8px rgba(0,0,0,0.8)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            {toast.type === "success" ? (
+              <Check size={15} style={{ color: "#4ade80" }} />
+            ) : (
+              <AlertCircle size={15} style={{ color: "#f87171" }} />
+            )}
+            {toast.message}
+          </div>
         </div>
       )}
     </div>

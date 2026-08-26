@@ -188,3 +188,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const userId = searchParams.get('userId');
+    const jobId = searchParams.get('jobId');
+
+    if (!id && (!userId || !jobId)) {
+      return NextResponse.json({ error: 'Missing application id or (userId + jobId)' }, { status: 400 });
+    }
+
+    const { url, key } = (() => {
+      const u = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const k = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
+      return { url: u, key: k };
+    })();
+
+    let query = '';
+    if (id) {
+      query = `id=eq.${id}`;
+    } else if (userId && jobId) {
+      query = `and(user_id.eq.${userId},job_id.eq.${jobId})`;
+    }
+
+    const delRes = await fetch(`${url}/rest/v1/user_applications?${query}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+      },
+    });
+
+    if (!delRes.ok) {
+      return NextResponse.json({ error: 'Failed to delete application' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Application unmarked successfully' });
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message || 'Internal error' }, { status: 500 });
+  }
+}
