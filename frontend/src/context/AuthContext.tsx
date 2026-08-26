@@ -36,12 +36,20 @@ export interface SyncJobPayload {
   source?: string;
 }
 
+export interface SyncIndicatorState {
+  status: "idle" | "syncing" | "success" | "error";
+  companyName?: string;
+  jobTitle?: string;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
+  syncIndicator: SyncIndicatorState;
   signIn: (email: string, pass: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
@@ -56,6 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncIndicator, setSyncIndicator] = useState<SyncIndicatorState>({ status: "idle" });
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fetchingProfileRef = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async (userId: string, userEmail?: string) => {
@@ -210,6 +220,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const syncAppliedJobToSheet = async (job: SyncJobPayload): Promise<{ success: boolean; message?: string }> => {
     if (!user) return { success: false, message: "User not logged in" };
 
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    setSyncIndicator({
+      status: "syncing",
+      companyName: job.company_name,
+      jobTitle: job.title,
+    });
+
     const cachedWebhook = typeof window !== "undefined" ? localStorage.getItem("jp_gsheet_webhook") || "" : "";
     const activeWebhook = profile?.google_sheet_webhook || cachedWebhook;
 
@@ -232,12 +249,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       const data = await res.json();
+      const isSuccess = res.ok;
+      const msg = data.message || data.error || (isSuccess ? "Synced to Google Sheet" : "Sync failed");
+
+      setSyncIndicator({
+        status: isSuccess ? "success" : "error",
+        companyName: job.company_name,
+        jobTitle: job.title,
+        message: msg,
+      });
+
+      syncTimeoutRef.current = setTimeout(() => {
+        setSyncIndicator({ status: "idle" });
+      }, isSuccess ? 3200 : 4500);
+
       return {
-        success: res.ok,
-        message: data.message || data.error || (res.ok ? "Synced to Google Sheet" : "Sync failed"),
+        success: isSuccess,
+        message: msg,
       };
     } catch (e: any) {
-      return { success: false, message: e?.message || "Network error syncing to Google Sheet" };
+      const errMsg = e?.message || "Network error syncing to Google Sheet";
+      setSyncIndicator({
+        status: "error",
+        companyName: job.company_name,
+        jobTitle: job.title,
+        message: errMsg,
+      });
+
+      syncTimeoutRef.current = setTimeout(() => {
+        setSyncIndicator({ status: "idle" });
+      }, 4500);
+
+      return { success: false, message: errMsg };
     }
   };
 
@@ -251,6 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile,
         loading,
         isAdmin,
+        syncIndicator,
         signIn,
         signOut,
         updateProfile,

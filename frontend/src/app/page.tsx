@@ -13,13 +13,14 @@ import JobQaModal from "@/components/JobQaModal";
 import ScreenshotProofModal from "@/components/ScreenshotProofModal";
 import { identifyAtsPlatform, resolveDirectApplyUrl, ALL_ATS_PLATFORMS, getPlatformMeta } from "@/lib/jobUrls";
 import { ResumeData } from "@/lib/pdfGenerator";
+import { estimateJobSalary } from "@/lib/salaryEstimator";
 import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
   Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
   Bookmark, BookmarkCheck, CheckCircle2, ThumbsDown, Eye, EyeOff,
   Filter, Tag, Sparkles, RotateCcw, Globe, Mail, MessageSquare, Camera,
   Code, Server, Monitor, BrainCircuit, LineChart, ShieldAlert, AlertCircle,
-  Wifi, Database
+  Wifi, Database, Share2, Check, Zap, CheckSquare, Square
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -53,18 +54,28 @@ const API_BASE = "/api";
 
 // ── Skill color mapping ────────────────────────────────────────
 const SKILL_COLORS: Record<string, string> = {
-  Python: "#3776AB", JavaScript: "#F7DF1E", TypeScript: "#3178C6",
-  React: "#61DAFB", "Next.js": "#000", Go: "#00ADD8", Rust: "#CE422B",
-  Java: "#ED8B00", "C++": "#00599C", SQL: "#336791", Docker: "#2496ED",
-  Kubernetes: "#326CE5", AWS: "#FF9900", GCP: "#4285F4", Azure: "#0078D4",
-  PostgreSQL: "#336791", MongoDB: "#47A248", Redis: "#DC382D",
-  GraphQL: "#E10098", Terraform: "#7B42BC", Git: "#F05032",
-  Linux: "#FCC624", Kafka: "#231F20", Spark: "#E25A1C",
-  TensorFlow: "#FF6F00", PyTorch: "#EE4C2C",
+  Python: "#38bdf8", JavaScript: "#facc15", TypeScript: "#60a5fa",
+  React: "#38bdf8", "Next.js": "#e2e8f0", Go: "#38bdf8", Rust: "#f97316",
+  Java: "#fb923c", "C++": "#3b82f6", "C#": "#a855f7", ".NET": "#8b5cf6",
+  SQL: "#38bdf8", Docker: "#0ea5e9", Kubernetes: "#6366f1", AWS: "#f59e0b",
+  GCP: "#38bdf8", Azure: "#0284c7", PostgreSQL: "#38bdf8", MongoDB: "#22c55e",
+  Redis: "#ef4444", GraphQL: "#ec4899", Terraform: "#a855f7", Git: "#f97316",
+  Linux: "#eab308", Kafka: "#cbd5e1", Spark: "#f97316", Swift: "#f97316",
+  Kotlin: "#a855f7", Flutter: "#38bdf8", "React Native": "#38bdf8",
+  "Node.js": "#22c55e", Ruby: "#ef4444", PHP: "#818cf8", Vue: "#4ade80",
+  Angular: "#ef4444", Tailwind: "#38bdf8", "Machine Learning": "#c084fc",
+  AI: "#c084fc", LLM: "#c084fc", PyTorch: "#f97316", TensorFlow: "#f59e0b",
 };
 
 function getSkillColor(skill: string): string {
-  return SKILL_COLORS[skill] || "#6366f1";
+  // Case-insensitive / normalized lookup
+  const exact = SKILL_COLORS[skill];
+  if (exact) return exact;
+  const lower = skill.toLowerCase();
+  for (const [k, v] of Object.entries(SKILL_COLORS)) {
+    if (k.toLowerCase() === lower) return v;
+  }
+  return "#818cf8"; // default modern indigo/violet
 }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -122,6 +133,16 @@ function sourceBadgeClass(source: string) {
   if (s === "jobvite") return "badge badge-jobvite";
   if (s === "icims") return "badge badge-icims";
   if (s === "jobright") return "badge badge-jobright";
+  if (s === "bamboohr") return "badge badge-bamboohr";
+  if (s === "smartrecruiters") return "badge badge-smartrecruiters";
+  if (s === "recruitee") return "badge badge-recruitee";
+  if (s === "teamtailor") return "badge badge-teamtailor";
+  if (s === "rippling") return "badge badge-rippling";
+  if (s === "personio") return "badge badge-personio";
+  if (s === "pinpoint") return "badge badge-pinpoint";
+  if (s === "recruiterflow") return "badge badge-recruiterflow";
+  if (s === "cats") return "badge badge-cats";
+  if (s === "bullhorn") return "badge badge-bullhorn";
   return "badge";
 }
 
@@ -179,6 +200,7 @@ function JobModal({
   job, onClose, appliedSet, hiddenSet, savedSet,
   onToggleApplied, onToggleHidden, onToggleSaved,
   onOpenCv, onOpenCoverLetter, onOpenQa, onOpenProof,
+  onShowToast,
 }: {
   job: Job;
   onClose: () => void;
@@ -192,6 +214,7 @@ function JobModal({
   onOpenCoverLetter?: (job: Job) => void;
   onOpenQa?: (job: Job) => void;
   onOpenProof?: (job: Job) => void;
+  onShowToast?: (msg: string, type?: "success" | "info" | "warning") => void;
 }) {
   const isApplied = appliedSet.has(job.id);
   const isHidden = hiddenSet.has(job.id);
@@ -261,9 +284,12 @@ function JobModal({
               {job.title}
             </h2>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginTop: 10, fontSize: 14, color: "var(--text-secondary)" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <Building2 size={15} style={{ color: "var(--accent-glow)" }} /> {job.company_name}
-              </span>
+              <Link
+                href={`/companies/${encodeURIComponent(job.company_name)}`}
+                style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--accent-glow)", textDecoration: "none", fontWeight: 600 }}
+              >
+                <Building2 size={15} /> {job.company_name}
+              </Link>
               {job.location && (
                 <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <MapPin size={15} style={{ color: "var(--text-muted)" }} /> {job.location}
@@ -275,18 +301,39 @@ function JobModal({
               </span>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 10,
-              padding: 8, cursor: "pointer", color: "var(--text-secondary)",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-          >
-            <X size={18} />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  navigator.clipboard.writeText(`${window.location.origin}/jobs/${job.id}`);
+                  onShowToast?.("Job link copied to clipboard! 📋", "success");
+                }
+              }}
+              style={{
+                background: "rgba(255,255,255,0.06)", border: "1px solid var(--border-subtle)", borderRadius: 10,
+                padding: "8px 12px", cursor: "pointer", color: "var(--text-secondary)",
+                fontSize: 12, display: "flex", alignItems: "center", gap: 6,
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+              title="Share job link"
+            >
+              <Share2 size={14} /> Share
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 10,
+                padding: 8, cursor: "pointer", color: "var(--text-secondary)",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Badges row */}
@@ -313,12 +360,24 @@ function JobModal({
         </div>
 
         {/* Salary */}
-        {(job.salary_min || job.salary_max) && (
+        {(job.salary_min || job.salary_max) ? (
           <div style={{ padding: "0 28px 12px", display: "flex", alignItems: "center", gap: 6, fontSize: 16, fontWeight: 700, color: "var(--salary)" }}>
             <DollarSign size={16} />
             {formatSalary(job.salary_min, job.salary_max, job.salary_currency, job.salary_period)}
           </div>
-        )}
+        ) : (() => {
+          const est = estimateJobSalary(job.title, job.location);
+          if (!est) return null;
+          return (
+            <div style={{ padding: "0 28px 12px", display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="salary-tag salary-estimated">
+                <DollarSign size={12} />
+                Est. ${est.min.toLocaleString()} – ${est.max.toLocaleString()}/{est.period}
+                <span className="estimate-badge">AI Estimate</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Skills */}
         {job.skills && job.skills.length > 0 && (
@@ -714,8 +773,6 @@ export default function JobsDashboard() {
     setTimeout(() => setToast(null), 4500);
   };
 
-  // Tracking sets — initialized synchronously from localStorage so the first
-  // fetchJobs call already has the correct excludeIds (prevents showing 11 jobs)
   const [appliedSet, setAppliedSet] = useState<Set<string>>(() => getStoredSet("jp_applied"));
   const [hiddenSet, setHiddenSet] = useState<Set<string>>(() => getStoredSet("jp_hidden"));
   const [savedSet, setSavedSet] = useState<Set<string>>(() => getStoredSet("jp_saved"));
@@ -723,6 +780,11 @@ export default function JobsDashboard() {
   const [showApplied, setShowApplied] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // ── Keyboard Navigation & Bulk Apply Mode ──
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const [bulkMode, setBulkMode] = useState<boolean>(false);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(new Set());
 
   // Refs for tracking sets — used inside fetchJobs to avoid adding sets to deps
   const appliedSetRef = useRef(appliedSet);
@@ -969,6 +1031,88 @@ export default function JobsDashboard() {
     }
   };
 
+  // ── Keyboard Navigation (j/k/Enter/s/Escape) ──
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInputActive = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || (activeEl as HTMLElement).isContentEditable);
+      if (isInputActive || selectedJob || cvModalJob || coverLetterJob || qaModalJob || proofModalJob) {
+        return;
+      }
+
+      if (e.key === "j" || e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedIndex((prev) => {
+          const next = Math.min(prev + 1, displayedJobs.length - 1);
+          if (next >= 0 && displayedJobs[next]) {
+            const target = document.getElementById(`job-card-${displayedJobs[next].id}`);
+            target?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+          return next;
+        });
+      } else if (e.key === "k" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedIndex((prev) => {
+          const next = Math.max(prev - 1, 0);
+          if (next >= 0 && displayedJobs[next]) {
+            const target = document.getElementById(`job-card-${displayedJobs[next].id}`);
+            target?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+          return next;
+        });
+      } else if (e.key === "Enter" && focusedIndex >= 0 && focusedIndex < displayedJobs.length) {
+        e.preventDefault();
+        openJobModal(displayedJobs[focusedIndex]);
+      } else if (e.key === "s" && focusedIndex >= 0 && focusedIndex < displayedJobs.length) {
+        e.preventDefault();
+        toggleSaved(displayedJobs[focusedIndex].id);
+      } else if (e.key === "Escape") {
+        setFocusedIndex(-1);
+        if (bulkMode) setBulkMode(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [displayedJobs, focusedIndex, selectedJob, cvModalJob, coverLetterJob, qaModalJob, proofModalJob, bulkMode]);
+
+  // ── Bulk Selection & Apply Handler ──
+  const toggleBulkSelect = (id: string) => {
+    setBulkSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAllOnPage = () => {
+    if (bulkSelectedIds.size === displayedJobs.length) {
+      setBulkSelectedIds(new Set());
+    } else {
+      setBulkSelectedIds(new Set(displayedJobs.map((j) => j.id)));
+    }
+  };
+
+  const handleBulkApplyAll = () => {
+    if (bulkSelectedIds.size === 0) return;
+    const selectedList = displayedJobs.filter((j) => bulkSelectedIds.has(j.id));
+    const toOpen = selectedList.slice(0, 10);
+
+    showToast(`Opening ${toOpen.length} application tabs in sequence... 🚀`, "info");
+
+    toOpen.forEach((j, idx) => {
+      setTimeout(() => {
+        const url = resolveDirectApplyUrl(j.apply_url || j.job_url, j.description, j.apply_url_original) || j.apply_url || j.job_url;
+        window.open(url, "_blank", "noopener,noreferrer");
+        toggleApplied(j.id);
+      }, idx * 350);
+    });
+
+    setBulkSelectedIds(new Set());
+    setBulkMode(false);
+  };
+
   const appliedCount = jobs.filter((j) => appliedSet.has(j.id)).length;
   const hiddenCount = jobs.filter((j) => hiddenSet.has(j.id)).length;
 
@@ -1000,6 +1144,22 @@ export default function JobsDashboard() {
             </Link>
             <button className="btn-ghost" onClick={() => setShowFilters(!showFilters)}>
               <Filter size={14} /> Filters {selectedSkills.size > 0 && <span style={{ background: "var(--accent-soft)", color: "var(--accent-glow)", borderRadius: 999, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{selectedSkills.size}</span>}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => {
+                setBulkMode(!bulkMode);
+                if (bulkMode) setBulkSelectedIds(new Set());
+              }}
+              style={{
+                color: bulkMode ? "#a5b4fc" : "var(--text-muted)",
+                background: bulkMode ? "rgba(99, 102, 241, 0.12)" : undefined,
+                borderColor: bulkMode ? "rgba(99, 102, 241, 0.3)" : undefined,
+              }}
+              title="Toggle multi-select bulk apply mode"
+            >
+              <Zap size={14} style={{ color: bulkMode ? "#a5b4fc" : undefined }} /> Bulk Apply
             </button>
             <button
               type="button"
@@ -1330,25 +1490,52 @@ export default function JobsDashboard() {
       ) : (
         <>
           <div className="stagger-children" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
-            {displayedJobs.map((job) => {
+            {displayedJobs.map((job, index) => {
               const freshness = freshnessColor(job.posted_at || job.created_at);
               const isSaved = savedSet.has(job.id);
               const isApplied = appliedSet.has(job.id);
               const isHidden = hiddenSet.has(job.id);
               const isUploading = uploadingJobIds.has(job.id);
+              const isBulkSelected = bulkSelectedIds.has(job.id);
+              const isFocused = focusedIndex === index;
+              const salaryEst = (!job.salary_min && !job.salary_max) ? estimateJobSalary(job.title, job.location) : null;
 
               return (
                 <div
                   key={job.id}
-                  className="job-card"
-                  style={{ display: "flex", flexDirection: "column", cursor: "pointer" }}
-                  onClick={() => openJobModal(job)}
+                  id={`job-card-${job.id}`}
+                  className={`job-card ${isFocused ? "focused-job" : ""}`}
+                  style={{
+                    display: "flex", flexDirection: "column", cursor: "pointer",
+                    border: isBulkSelected ? "1px solid #818cf8" : undefined,
+                    background: isBulkSelected ? "rgba(99, 102, 241, 0.06)" : undefined,
+                  }}
+                  onClick={() => {
+                    if (bulkMode) {
+                      toggleBulkSelect(job.id);
+                    } else {
+                      setFocusedIndex(index);
+                      openJobModal(job);
+                    }
+                  }}
                 >
                   {/* Card Body */}
                   <div className="job-card-body" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                    {/* Top row: badges + freshness */}
+                    {/* Top row: checkboxes / badges + freshness */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                        {bulkMode && (
+                          <span
+                            onClick={(e) => { e.stopPropagation(); toggleBulkSelect(job.id); }}
+                            style={{
+                              display: "inline-flex", alignItems: "center",
+                              color: isBulkSelected ? "#818cf8" : "var(--text-muted)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {isBulkSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                          </span>
+                        )}
                         <span className={sourceBadgeClass(job.source)}>{job.source.toLowerCase()}</span>
                         {job.remote_type && job.remote_type !== "UNKNOWN" && (
                           <span className={remoteBadgeClass(job.remote_type)}>{job.remote_type.toLowerCase()}</span>
@@ -1368,9 +1555,16 @@ export default function JobsDashboard() {
 
                     {/* Company + Location */}
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 14px", fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <Link
+                        href={`/companies/${encodeURIComponent(job.company_name)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--text-secondary)", textDecoration: "none", fontWeight: 500 }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-glow)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+                        title={`View all jobs at ${job.company_name}`}
+                      >
                         <Building2 size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} /> {job.company_name}
-                      </span>
+                      </Link>
                       {job.location && (
                         <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-muted)" }}>
                           <MapPin size={13} style={{ flexShrink: 0 }} />
@@ -1379,29 +1573,38 @@ export default function JobsDashboard() {
                       )}
                     </div>
 
-                    {/* Salary (prominent if present) */}
-                    {(job.salary_min || job.salary_max) && (
+                    {/* Salary (Actual or AI Estimated) */}
+                    {(job.salary_min || job.salary_max) ? (
                       <div className="salary-tag" style={{ marginBottom: 10, alignSelf: "flex-start" }}>
                         <DollarSign size={12} />
                         {formatSalary(job.salary_min, job.salary_max, job.salary_currency, job.salary_period)}
                       </div>
-                    )}
+                    ) : salaryEst ? (
+                      <div className="salary-tag salary-estimated" style={{ marginBottom: 10, alignSelf: "flex-start" }}>
+                        <DollarSign size={11} />
+                        Est. ${salaryEst.min >= 1000 ? `${salaryEst.min / 1000}k` : salaryEst.min} – ${salaryEst.max >= 1000 ? `${salaryEst.max / 1000}k` : salaryEst.max}/{salaryEst.period === "yearly" ? "yr" : "hr"}
+                        <span className="estimate-badge">AI</span>
+                      </div>
+                    ) : null}
 
                     {/* Skills */}
                     {job.skills && job.skills.length > 0 && (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: "auto", paddingTop: 4 }}>
-                        {job.skills.slice(0, 4).map((skill) => (
-                          <span
-                            key={skill}
-                            style={{
-                              padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 500,
-                              background: "rgba(255,255,255,0.04)", color: "var(--text-muted)",
-                              border: "1px solid var(--border-subtle)",
-                            }}
-                          >
-                            {skill}
-                          </span>
-                        ))}
+                        {job.skills.slice(0, 4).map((skill) => {
+                          const col = getSkillColor(skill);
+                          return (
+                            <span
+                              key={skill}
+                              style={{
+                                padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 600,
+                                background: `${col}18`, color: col,
+                                border: `1px solid ${col}35`,
+                              }}
+                            >
+                              {skill}
+                            </span>
+                          );
+                        })}
                         {job.skills.length > 4 && (
                           <span style={{ padding: "2px 6px", fontSize: 10, color: "var(--text-dimmed)" }}>
                             +{job.skills.length - 4}
@@ -1417,6 +1620,20 @@ export default function JobsDashboard() {
                       <Clock size={11} /> {formatPostingDate(job.posted_at || job.created_at)}
                     </span>
                     <div className="job-card-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (typeof window !== "undefined") {
+                            navigator.clipboard.writeText(`${window.location.origin}/jobs/${job.id}`);
+                            showToast("Job link copied! 📋", "success");
+                          }
+                        }}
+                        className="btn-ghost"
+                        style={{ color: "var(--text-muted)", padding: "4px 6px" }}
+                        title="Copy direct share link"
+                      >
+                        <Share2 size={13} />
+                      </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setCvModalJob(job); }}
                         className="btn-ghost"
@@ -1477,6 +1694,55 @@ export default function JobsDashboard() {
               );
             })}
           </div>
+
+          {/* ── Bulk Selection Floating Dock ─────────────────── */}
+          {bulkMode && (
+            <div className="bulk-floating-dock">
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, color: "#f8fafc" }}>
+                <Zap size={16} style={{ color: "#a5b4fc" }} />
+                <span>{bulkSelectedIds.size} Selected</span>
+              </div>
+
+              <div style={{ height: 16, width: 1, background: "rgba(255,255,255,0.15)" }} />
+
+              <button
+                type="button"
+                onClick={handleSelectAllOnPage}
+                style={{
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 999, padding: "5px 12px", color: "var(--text-secondary)",
+                  fontSize: 12, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                {bulkSelectedIds.size === displayedJobs.length ? "Deselect All" : "Select All"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBulkApplyAll}
+                disabled={bulkSelectedIds.size === 0}
+                className="btn-primary"
+                style={{
+                  padding: "6px 16px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                  opacity: bulkSelectedIds.size === 0 ? 0.5 : 1,
+                  cursor: bulkSelectedIds.size === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                Open Tabs ({Math.min(bulkSelectedIds.size, 10)})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setBulkMode(false); setBulkSelectedIds(new Set()); }}
+                style={{
+                  background: "transparent", border: "none", color: "var(--text-muted)",
+                  fontSize: 12, cursor: "pointer", padding: "4px 8px",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
 
           {/* ── Chunked Numbered Pagination Bar ─────────────────── */}
           {totalPages > 1 && (() => {
@@ -1559,6 +1825,7 @@ export default function JobsDashboard() {
           onOpenCoverLetter={(j) => setCoverLetterJob(j)}
           onOpenQa={(j) => setQaModalJob(j)}
           onOpenProof={(j) => setProofModalJob(j)}
+          onShowToast={showToast}
         />
       )}
 

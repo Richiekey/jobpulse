@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { AuthGuard } from "@/components/AuthGuard";
+import FloatingSyncIndicator from "@/components/FloatingSyncIndicator";
 
 export const metadata: Metadata = {
   title: "JobPulse — Multi-ATS Job Aggregator",
@@ -19,6 +20,9 @@ export default function RootLayout({
       <body className="bg-noise">
         <AuthProvider>
           <div className="gradient-mesh" />
+
+          {/* ── Global Floating Sync Indicator ── */}
+          <FloatingSyncIndicator />
 
           {/* ── Navbar ────────────────────────── */}
           <Navbar />
