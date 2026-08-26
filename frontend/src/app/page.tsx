@@ -1465,21 +1465,37 @@ export default function JobsDashboard() {
                       >
                         <Sparkles size={12} /> Tailor
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleApplied(job.id); }}
-                        disabled={isUploading}
-                        className="btn-ghost"
-                        style={{
-                          color: isUploading ? "var(--accent-glow)" : isApplied ? "var(--success)" : "var(--text-muted)",
-                          fontSize: 11,
-                          padding: "4px 8px",
-                          cursor: isUploading ? "wait" : "pointer",
-                        }}
-                        title={isUploading ? "Syncing..." : isApplied ? "Applied" : "Mark Applied"}
-                      >
-                        {isUploading ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                        {isUploading ? "..." : isApplied ? "Applied" : "Apply"}
-                      </button>
+                      {(() => {
+                        const cardApplyUrl = resolveDirectApplyUrl(job.apply_url || job.job_url, job.description, job.apply_url_original) || job.apply_url || job.job_url || "#";
+                        return (
+                          <a
+                            href={cardApplyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="btn-ghost"
+                            style={{
+                              color: "var(--text-muted)",
+                              fontSize: 11,
+                              padding: "4px 8px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              textDecoration: "none",
+                              transition: "color 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = "var(--accent-glow)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = "var(--text-muted)";
+                            }}
+                            title="Open job application link in new tab"
+                          >
+                            <ExternalLink size={12} /> Apply
+                          </a>
+                        );
+                      })()}
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleSaved(job.id); }}
                         className="btn-ghost"
