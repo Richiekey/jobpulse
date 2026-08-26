@@ -129,16 +129,24 @@ class JobrightAdapter(BaseAdapter):
         return jobs
 
     async def fetch_job_details(self, company_identifier: str, job_id: str) -> Optional[Dict[str, Any]]:
-        """Fetches full job posting details and extracts JSON-LD structured data."""
+        """Fetches full job posting details and extracts structured data with direct ATS URLs."""
         url = f"https://jobright.ai/jobs/info/{job_id}"
         try:
-            response = await self.client.get(url)
+            session_id = await self._ensure_session()
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            }
+            if session_id:
+                headers["Cookie"] = f"SESSION_ID={session_id}"
+
+            response = await self.client.get(url, headers=headers)
             if response.status_code != 200:
                 return None
 
             soup = BeautifulSoup(response.text, "lxml")
 
-            # Try to extract jobright-helper-job-detail-info (richest)
+            # Try to extract jobright-helper-job-detail-info (richest, contains originalUrl & applyLink)
             helper_script = soup.find("script", id="jobright-helper-job-detail-info")
             if helper_script and helper_script.string:
                 try:
@@ -346,7 +354,7 @@ class JobrightAdapter(BaseAdapter):
             salary_currency=salary_info.get("currency"),
             salary_period=salary_info.get("period"),
             job_url=job_url,
-            apply_url=job_url,
+            apply_url=apply_url_final,
             apply_url_original=direct_apply_url,
             posted_at=posted_at,
             status=JobStatus.ACTIVE

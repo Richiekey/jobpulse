@@ -22,7 +22,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Known ATS URL patterns
 ATS_PATTERNS = [
-    r'https?://(?:boards\.)?greenhouse\.io/[a-zA-Z0-9_\-\./]+',
+    r'https?://(?:boards\.|job-boards\.)?greenhouse\.io/[a-zA-Z0-9_\-\./]+',
     r'https?://jobs\.ashbyhq\.com/[a-zA-Z0-9_\-\./]+',
     r'https?://jobs\.lever\.co/[a-zA-Z0-9_\-\./]+',
     r'https?://[a-zA-Z0-9_\-\.]+\.myworkdayjobs\.com/[a-zA-Z0-9_\-\./]+',
@@ -31,40 +31,75 @@ ATS_PATTERNS = [
     r'https?://[a-zA-Z0-9_\-\.]+\.icims\.com/[a-zA-Z0-9_\-\./]+',
     r'https?://[a-zA-Z0-9_\-\.]+\.jobvite\.com/[a-zA-Z0-9_\-\./]+',
     r'https?://[a-zA-Z0-9_\-\.]+\.applytojob\.com/[a-zA-Z0-9_\-\./]+',
+    r'https?://[a-zA-Z0-9_\-\.]+\.jibeapply\.com/[a-zA-Z0-9_\-\./]+',
+    r'https?://career\d*\.successfactors\.com/[a-zA-Z0-9_\-\./\?=&]+',
+    r'https?://workforcenow\.adp\.com/[a-zA-Z0-9_\-\./\?=&]+',
+    r'https?://careers\.[a-zA-Z0-9_\-\.]+\.com/[a-zA-Z0-9_\-\./]+',
+    r'https?://jobs\.[a-zA-Z0-9_\-\.]+\.com/[a-zA-Z0-9_\-\./]+',
+    r'https?://(?:www\.)?linkedin\.com/jobs/view/\d+',
 ]
 
 HELPER_URL_FIELDS = [
-    "applyUrl", "jobApplyUrl", "originalUrl", "externalUrl",
-    "companyJobUrl", "sourceUrl", "directUrl", "applyLink",
-    "applicationUrl", "externalApplyUrl",
+    "originalUrl", "applyLink", "applyUrl", "jobApplyUrl", "externalUrl",
+    "companyJobUrl", "sourceUrl", "directUrl", "applicationUrl", "externalApplyUrl",
 ]
+
+_session_id = "af5f3ceeb49e4aa5ac932f696b158c55"
+
+def ensure_session() -> str:
+    global _session_id
+    if _session_id:
+        return _session_id
+    try:
+        r = httpx.post("https://jobright.ai/swan/auth/login/pwd", json={
+            "email": "merichie430@gmail.com",
+            "password": "Jobpulse12345"
+        }, headers={
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Origin": "https://jobright.ai",
+            "Referer": "https://jobright.ai/"
+        }, timeout=10)
+        if r.status_code == 200:
+            set_cookie = r.headers.get("set-cookie", "")
+            m = re.search(r"SESSION_ID=([^;]+)", set_cookie)
+            if m:
+                _session_id = m.group(1)
+    except Exception as e:
+        print("Login error:", e)
+    return _session_id
 
 
 def fetch_direct_url(jobright_url: str) -> str | None:
-    """Fetch a Jobright detail page and extract the direct ATS URL."""
+    """Fetch a Jobright detail page with authenticated session and extract the direct ATS URL."""
     try:
-        resp = httpx.get(jobright_url, timeout=15, follow_redirects=True, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        })
+        session = ensure_session()
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+        if session:
+            headers["Cookie"] = f"SESSION_ID={session}"
+
+        resp = httpx.get(jobright_url, timeout=15, follow_redirects=True, headers=headers)
         if resp.status_code != 200:
             return None
 
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        # 1. Try helper_data
-        helper_tag = soup.find("script", id="jobright-helper-job-detail-info")
-        if helper_tag and helper_tag.string:
+        # 1. Try helper_data (richest, contains originalUrl / applyLink when authenticated)
+        m = re.search(r'<script\s+id="jobright-helper-job-detail-info"[^>]*>(.*?)</script>', resp.text, re.DOTALL)
+        if m:
             try:
-                helper = json.loads(helper_tag.string)
-                if isinstance(helper, dict):
-                    for field in HELPER_URL_FIELDS:
-                        val = helper.get(field)
-                        if val and isinstance(val, str) and "jobright.ai" not in val:
-                            return val.strip()
-            except json.JSONDecodeError:
+                helper_data = json.loads(m.group(1))
+                jr = helper_data.get("jobResult", {})
+                for field in HELPER_URL_FIELDS:
+                    val = jr.get(field)
+                    if val and isinstance(val, str) and "jobright.ai" not in val and val.startswith("http"):
+                        return val.strip()
+            except Exception:
                 pass
 
         # 2. Try JSON-LD
+        soup = BeautifulSoup(resp.text, "html.parser")
         for script in soup.find_all("script", type="application/ld+json"):
             if not script.string:
                 continue
@@ -73,7 +108,7 @@ def fetch_direct_url(jobright_url: str) -> str | None:
                 if isinstance(ld, dict) and ld.get("@type") == "JobPosting":
                     for field in ("url", "sameAs"):
                         val = ld.get(field)
-                        if val and isinstance(val, str) and "jobright.ai" not in val:
+                        if val and isinstance(val, str) and "jobright.ai" not in val and val.startswith("http"):
                             return val.strip()
             except json.JSONDecodeError:
                 pass
