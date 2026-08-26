@@ -711,10 +711,11 @@ export default function JobsDashboard() {
     setTimeout(() => setToast(null), 4500);
   };
 
-  // Tracking sets
-  const [appliedSet, setAppliedSet] = useState<Set<string>>(new Set());
-  const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
-  const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
+  // Tracking sets — initialized synchronously from localStorage so the first
+  // fetchJobs call already has the correct excludeIds (prevents showing 11 jobs)
+  const [appliedSet, setAppliedSet] = useState<Set<string>>(() => getStoredSet("jp_applied"));
+  const [hiddenSet, setHiddenSet] = useState<Set<string>>(() => getStoredSet("jp_hidden"));
+  const [savedSet, setSavedSet] = useState<Set<string>>(() => getStoredSet("jp_saved"));
   const [uploadingJobIds, setUploadingJobIds] = useState<Set<string>>(new Set());
   const [showApplied, setShowApplied] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
@@ -729,13 +730,6 @@ export default function JobsDashboard() {
   useEffect(() => { hiddenSetRef.current = hiddenSet; }, [hiddenSet]);
   useEffect(() => { showAppliedRef.current = showApplied; }, [showApplied]);
   useEffect(() => { showHiddenRef.current = showHidden; }, [showHidden]);
-
-  // Load tracking from localStorage
-  useEffect(() => {
-    setAppliedSet(getStoredSet("jp_applied"));
-    setHiddenSet(getStoredSet("jp_hidden"));
-    setSavedSet(getStoredSet("jp_saved"));
-  }, []);
 
   const toggleApplied = async (id: string) => {
     const isNowApplied = !appliedSet.has(id);
