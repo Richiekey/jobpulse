@@ -655,6 +655,7 @@ export default function JobsDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [locationState, setLocationState] = useState<LocationFilterState>({
     country: "ALL",
@@ -681,6 +682,14 @@ export default function JobsDashboard() {
       .then((data) => { if (data.counts) setSourceCounts(data.counts); })
       .catch(() => {});
   }, []);
+
+  // Debounce searchInput into query (350ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuery(searchInput.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Job modal
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -929,7 +938,11 @@ export default function JobsDashboard() {
   // When page changes (from pagination clicks), fetch that page
   useEffect(() => { fetchJobs(page); }, [page, fetchJobs]);
 
-  const handleSearch = () => { setPage(1); fetchJobs(1); };
+  const handleSearch = () => {
+    setQuery(searchInput.trim());
+    setPage(1);
+    fetchJobs(1);
+  };
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === page) return;
@@ -1049,23 +1062,23 @@ export default function JobsDashboard() {
           <input
             type="text"
             placeholder="Search keywords, job titles, companies..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             className="input-field h-11 text-xs"
             style={{
               paddingLeft: 38,
-              paddingRight: query ? 36 : 14,
+              paddingRight: searchInput ? 36 : 14,
               background: "rgba(255, 255, 255, 0.04)",
               borderColor: "transparent",
               borderRadius: 12,
               color: "#f4f4f5",
             }}
           />
-          {query && (
+          {searchInput && (
             <button
               type="button"
-              onClick={() => { setQuery(""); }}
+              onClick={() => { setSearchInput(""); setQuery(""); }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-200 p-1 rounded-md cursor-pointer transition-colors"
               title="Clear search"
             >
@@ -1153,10 +1166,11 @@ export default function JobsDashboard() {
         </button>
 
         {/* Reset Filters */}
-        {(query || locationState.cityOrState || locationState.country !== "ALL" || selectedFunctions.length > 0 || datePosted || remoteType || source || selectedSkills.size > 0) && (
+        {(searchInput || query || locationState.cityOrState || locationState.country !== "ALL" || selectedFunctions.length > 0 || datePosted || remoteType || source || selectedSkills.size > 0) && (
           <button
             type="button"
             onClick={() => {
+              setSearchInput("");
               setQuery("");
               setLocationState({ country: "ALL", allLocationsInCountry: true, cityOrState: "" });
               setSelectedFunctions([]);

@@ -96,15 +96,29 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     params.order = 'posted_at.desc,created_at.desc';
   }
 
-  // Search query (Keyword / Company / Title)
+  // Search query (Keyword / Company / Title / Location / Department)
   const q = sp.get('q');
   const functions = sp.get('functions');
   const hasUserSearch = !!(q && q.trim());
   const hasUserFunctions = !!functions;
 
   if (hasUserSearch) {
-    const term = q!.trim();
-    params.and = `(${freshnessCond},or(title.ilike.*${term}*,company_name.ilike.*${term}*,location.ilike.*${term}*))`;
+    // Sanitize PostgREST reserved characters: , ( ) & # % " *
+    const rawClean = q!.replace(/[,()&#%"*]+/g, ' ');
+    let words = rawClean.split(/\s+/).map(w => w.trim()).filter(w => w.length > 1);
+    if (words.length === 0) {
+      words = rawClean.split(/\s+/).map(w => w.trim()).filter(w => w.length > 0);
+    }
+
+    if (words.length === 0) {
+      params.or = `(posted_at.gte.${dateCutoff},and(posted_at.is.null,created_at.gte.${dateCutoff}))`;
+    } else {
+      const wordClauses = words.slice(0, 4).map(w =>
+        `or(title.ilike.*${w}*,company_name.ilike.*${w}*,location.ilike.*${w}*,department.ilike.*${w}*)`
+      );
+      const searchClause = wordClauses.length === 1 ? wordClauses[0] : `and(${wordClauses.join(',')})`;
+      params.and = `(${freshnessCond},${searchClause})`;
+    }
   } else {
     params.or = `(posted_at.gte.${dateCutoff},and(posted_at.is.null,created_at.gte.${dateCutoff}))`;
   }
