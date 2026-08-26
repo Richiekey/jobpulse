@@ -836,7 +836,7 @@ export default function JobsDashboard() {
 
   const PAGE_SIZE = 12;
 
-  const fetchJobs = useCallback(async (p = page) => {
+  const fetchJobs = useCallback(async (p: number) => {
     // Abort previous in-flight request if any
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -900,10 +900,13 @@ export default function JobsDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [query, locationState, selectedFunctions, remoteType, source, selectedSkills, page]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, locationState, selectedFunctions, remoteType, source, selectedSkills]);
 
-  useEffect(() => { setPage(1); fetchJobs(1); }, [remoteType, source, locationState, selectedFunctions, selectedSkills]);
-  useEffect(() => { fetchJobs(page); }, [page]);
+  // When filters change, reset to page 1
+  useEffect(() => { setPage(1); fetchJobs(1); }, [fetchJobs]);
+  // When page changes (from pagination clicks), fetch that page
+  useEffect(() => { fetchJobs(page); }, [page, fetchJobs]);
 
   const handleSearch = () => { setPage(1); fetchJobs(1); };
 
@@ -944,48 +947,8 @@ export default function JobsDashboard() {
     return true;
   });
 
-  // Display exactly PAGE_SIZE jobs on the current view with company interleaving
-  const displayedJobs = interleaveCompanies(visibleJobs).slice(0, PAGE_SIZE);
-
-  // Background auto-replenish: when visible jobs drop below buffer threshold, pull the next batch
-  useEffect(() => {
-    if (loading || visibleJobs.length >= PAGE_SIZE + 6 || jobs.length === 0 || jobs.length >= total) {
-      return;
-    }
-
-    const replenishNextJobs = async () => {
-      try {
-        const nextBatchPage = Math.floor(jobs.length / 12) + 1;
-        const params = new URLSearchParams();
-        params.set("page", String(nextBatchPage));
-        params.set("per_page", "12");
-        if (query) params.set("q", query);
-        if (locationState.country) params.set("country", locationState.country);
-        if (locationState.cityOrState) params.set("location", locationState.cityOrState);
-        if (selectedFunctions.length > 0) params.set("functions", selectedFunctions.join(","));
-        if (remoteType) params.set("remote_type", remoteType);
-        if (source) params.set("source", source);
-        if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
-
-        const res = await fetch(`${API_BASE}/jobs?${params.toString()}`);
-        if (res.ok) {
-          const data = await res.json();
-          const newItems: Job[] = data.items || [];
-          if (newItems.length > 0) {
-            setJobs((prev) => {
-              const existingIds = new Set(prev.map((j) => j.id));
-              const uniqueNew = newItems.filter((j) => !existingIds.has(j.id));
-              return [...prev, ...uniqueNew];
-            });
-          }
-        }
-      } catch {
-        // Silently ignore background replenishment error
-      }
-    };
-
-    replenishNextJobs();
-  }, [visibleJobs.length, loading, jobs.length, total, query, locationState, selectedFunctions, remoteType, source, selectedSkills]);
+  // Display the current page's jobs with company interleaving
+  const displayedJobs = interleaveCompanies(visibleJobs);
 
   // Fetch full job for modal
   const openJobModal = async (job: Job) => {
@@ -1539,15 +1502,7 @@ export default function JobsDashboard() {
                     <ChevronLeft size={15} />
                   </button>
 
-                  {hasPrevBlock && (
-                    <button
-                      type="button"
-                      onClick={() => handlePageChange(startPage - 1)}
-                      className="pagination-ellipsis"
-                    >
-                      ···
-                    </button>
-                  )}
+
 
                   {pageNumbers.map((p) => (
                     <button
@@ -1560,15 +1515,7 @@ export default function JobsDashboard() {
                     </button>
                   ))}
 
-                  {hasNextBlock && (
-                    <button
-                      type="button"
-                      onClick={() => handlePageChange(endPage + 1)}
-                      className="pagination-ellipsis"
-                    >
-                      ···
-                    </button>
-                  )}
+
 
                   <button
                     type="button"
