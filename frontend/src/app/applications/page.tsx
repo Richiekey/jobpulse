@@ -48,18 +48,26 @@ export default function ApplicationsPage() {
         method: "DELETE",
       });
 
-      // 2. Remove from local storage jp_applied
-      if (typeof window !== "undefined" && app.job_id) {
+      // 2. Remove from local storage jp_applied & jp_hidden so it returns to active rotation
+      if (typeof window !== "undefined") {
         try {
+          const targetJobId = app.job_id || app.id;
+          
           const appliedList: string[] = JSON.parse(localStorage.getItem("jp_applied") || "[]");
-          const nextApplied = appliedList.filter((id) => id !== app.job_id);
+          const nextApplied = appliedList.filter((id) => id !== targetJobId && id !== app.id && id !== app.job_id);
           localStorage.setItem("jp_applied", JSON.stringify(nextApplied));
+
+          const hiddenList: string[] = JSON.parse(localStorage.getItem("jp_hidden") || "[]");
+          const nextHidden = hiddenList.filter((id) => id !== targetJobId && id !== app.id && id !== app.job_id);
+          localStorage.setItem("jp_hidden", JSON.stringify(nextHidden));
+
+          window.dispatchEvent(new Event("jp_storage_update"));
         } catch {}
       }
 
       // 3. Update local state
       setApplications((prev) => prev.filter((a) => a.id !== app.id));
-      showToast(`Unmarked application for ${app.company_name}`, "info");
+      showToast(`Unmarked ${app.job_title} at ${app.company_name} — restored to active feed!`, "success");
     } catch (e: any) {
       showToast(e?.message || "Failed to unmark application", "warning");
     } finally {

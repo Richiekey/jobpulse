@@ -157,6 +157,15 @@ export default function SavedJobsPage() {
       return next;
     });
 
+    if (!isNowApplied) {
+      try {
+        const hiddenList: string[] = JSON.parse(localStorage.getItem("jp_hidden") || "[]");
+        const nextHidden = hiddenList.filter((hid) => hid !== id);
+        localStorage.setItem("jp_hidden", JSON.stringify(nextHidden));
+        window.dispatchEvent(new Event("jp_storage_update"));
+      } catch {}
+    }
+
     if (isNowApplied && syncAppliedJobToSheet) {
       const job = jobs.find((j) => j.id === id);
       if (job) {

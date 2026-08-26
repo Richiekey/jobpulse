@@ -786,6 +786,23 @@ export default function JobsDashboard() {
   const [bulkMode, setBulkMode] = useState<boolean>(false);
   const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(new Set());
 
+  // ── Sync tracking sets on focus or storage change ──
+  useEffect(() => {
+    const syncTrackingSets = () => {
+      setAppliedSet(getStoredSet("jp_applied"));
+      setHiddenSet(getStoredSet("jp_hidden"));
+      setSavedSet(getStoredSet("jp_saved"));
+      jobsMemoryCache.clear();
+    };
+
+    window.addEventListener("focus", syncTrackingSets);
+    window.addEventListener("jp_storage_update", syncTrackingSets);
+    return () => {
+      window.removeEventListener("focus", syncTrackingSets);
+      window.removeEventListener("jp_storage_update", syncTrackingSets);
+    };
+  }, []);
+
   // Refs for tracking sets — used inside fetchJobs to avoid adding sets to deps
   const appliedSetRef = useRef(appliedSet);
   const hiddenSetRef = useRef(hiddenSet);
