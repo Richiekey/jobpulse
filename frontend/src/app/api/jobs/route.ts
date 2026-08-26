@@ -130,22 +130,73 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     params.location = `ilike.*${location.trim()}*`;
   } else if (country && country !== 'ALL') {
     if (country === 'US') {
-      params.location = `ilike(any).{%United States%,%USA%,%US-Remote%,%San Francisco%,%New York%,%Seattle%,%Austin%,%Boston%,%Los Angeles%,%Chicago%,%San Jose%,%Sunnyvale%,%Mountain View%,%Denver%,%Atlanta%,%Dallas%,%Miami%,%Portland%,%Washington%}`;
+      params.location = `ilike(any).{%United States%,%USA%,%US-%,%Remote%US%,%San Francisco%,%New York%,%Seattle%,%Austin%,%Boston%,%Los Angeles%,%Chicago%,%San Jose%,%Sunnyvale%,%Mountain View%,%Denver%,%Atlanta%,%Dallas%,%Miami%,%Portland%,%Washington%,%Philadelphia%,%San Diego%,%Phoenix%,%Minneapolis%,%Raleigh%,%Charlotte%,%Nashville%,%Detroit%,%Irvine%,%Palo Alto%,%Cupertino%,%Menlo Park%,%Redmond%,%Santa Clara%,%Plano%,%Reston%,% CA%,% NY%,% WA%,% TX%,% MA%,% IL%,% CO%,% GA%,% FL%,% NC%,% VA%,% PA%,% MN%,% AZ%,% OR%,% OH%,% MI%,% NJ%,% MD%,% CT%,% UT%}`;
     } else if (country === 'CA') {
-      params.location = `ilike(any).{%Canada%,%Toronto%,%Vancouver%,%Montreal%,%Calgary%,%Ottawa%,%Edmonton%,%Ontario%,%Quebec%,%Alberta%}`;
+      params.location = `ilike(any).{%Canada%,%Toronto%,%Vancouver%,%Montreal%,%Calgary%,%Ottawa%,%Edmonton%,%Ontario%,%Quebec%,%Alberta%,%British Columbia%,%Waterloo%,%Winnipeg%,%Halifax%,%Victoria%,% ON%,% BC%,% QC%,% AB%}`;
     } else if (country === 'UK') {
-      params.location = `ilike(any).{%United Kingdom%,%UK%,%London%,%England%,%Edinburgh%,%Manchester%,%Cambridge%,%Bristol%,%Glasgow%,%Oxford%}`;
+      params.location = `ilike(any).{%United Kingdom%,%UK%,%London%,%England%,%Edinburgh%,%Manchester%,%Cambridge%,%Bristol%,%Glasgow%,%Oxford%,%Birmingham%,%Leeds%,%Belfast%,%Cardiff%,%Liverpool%,%Reading%,%Scotland%,%Wales%}`;
     }
   }
 
-  // Job Functions Multi-select (user explicitly selected)
+  // ── Job Functions Multi-select ──
+  // Split function names into flexible keyword variants so "Full Stack Engineer"
+  // also matches "Fullstack Developer", "Full-Stack Dev", etc.
+  const FUNCTION_KEYWORD_MAP: Record<string, string[]> = {
+    'Full Stack Engineer': ['*full stack*', '*fullstack*', '*full-stack*'],
+    'Backend Engineer': ['*backend*', '*back end*', '*back-end*', '*server side*'],
+    'Frontend Software Engineer': ['*frontend*', '*front end*', '*front-end*', '*ui engineer*'],
+    'Python Engineer': ['*python*'],
+    'Java Engineer': ['*java *', '*java,*'],
+    'C/C++ Engineer': ['*c++*', '*c/c++*', '*embedded*'],
+    '.Net Engineer': ['*.net*', '*dotnet*', '*c#*'],
+    'Systems Engineer': ['*systems engineer*', '*system engineer*'],
+    'DevOps': ['*devops*', '*dev ops*', '*platform engineer*', '*site reliability*', '*sre*'],
+    'Mobile Engineer': ['*mobile*', '*ios *', '*android*', '*react native*', '*flutter*'],
+    'QA / Test Automation': ['*qa *', '*quality assurance*', '*test*', '*sdet*', '*automation engineer*'],
+    'Data Analyst': ['*data analyst*', '*business analyst*', '*analytics*'],
+    'Data Scientist': ['*data scientist*', '*scientist*'],
+    'Data Engineer': ['*data engineer*', '*data platform*', '*etl*', '*data infrastructure*'],
+    'Machine Learning Engineer': ['*machine learning*', '*ml *', '*ml,*', '*deep learning*'],
+    'AI Engineer': ['*ai *', '*ai,*', '*artificial intelligence*', '*generative ai*', '*genai*'],
+    'Machine Learning/AI Researcher': ['*research*scientist*', '*ml research*', '*ai research*'],
+    'Machine Learning, Deep Learning': ['*deep learning*', '*neural*', '*computer vision*', '*cv engineer*'],
+    'LLM Engineer': ['*llm*', '*large language*', '*nlp*', '*natural language*'],
+    'Machine Learning, Computer Vision': ['*computer vision*', '*cv *', '*image*recognition*'],
+    'NLP Engineer': ['*nlp*', '*natural language*', '*text mining*', '*computational linguistics*'],
+    'Cyber Security Engineer': ['*security*', '*cyber*', '*infosec*', '*appsec*'],
+    'Cloud Security Engineer': ['*cloud security*', '*devsecops*'],
+    'Network Security Engineer': ['*network security*', '*network engineer*'],
+    'Cloud Architect': ['*cloud*architect*', '*cloud engineer*', '*aws*architect*', '*azure*architect*'],
+    'Site Reliability Engineer (SRE)': ['*sre*', '*site reliability*', '*reliability engineer*'],
+    'Infrastructure Engineer': ['*infrastructure*', '*infra engineer*', '*platform*'],
+    'Product Manager': ['*product manager*', '*product lead*', '*pm *'],
+    'Technical Program Manager': ['*program manager*', '*tpm*', '*technical program*'],
+    'Product Designer': ['*product designer*', '*design*'],
+    'UI/UX Designer': ['*ux*', '*ui *', '*ui/*', '*user experience*', '*user interface*'],
+    'Scrum Master / Agile Coach': ['*scrum*', '*agile*'],
+    'Account Executive': ['*account executive*', '*account manager*', '*ae *'],
+    'Sales Development Rep': ['*sales*', '*sdr*', '*business development*', '*bdr*'],
+    'Marketing Specialist': ['*marketing*', '*growth*'],
+    'Operations Associate': ['*operations*', '*ops *'],
+    'Financial Analyst': ['*financial analyst*', '*finance*'],
+  };
+
   if (hasUserFunctions) {
     const fnList = functions!.split(',').map(f => f.trim()).filter(Boolean);
-    if (fnList.length === 1) {
-      params.title = `ilike.*${fnList[0]}*`;
-    } else if (fnList.length > 1) {
-      params.title = `ilike(any).{${fnList.map(f => `*${f}*`).join(',')}}`;
+    // Expand each function into its keyword variants
+    const allPatterns: string[] = [];
+    for (const fn of fnList) {
+      const variants = FUNCTION_KEYWORD_MAP[fn];
+      if (variants) {
+        allPatterns.push(...variants);
+      } else {
+        // Fallback: use the raw function name as a wildcard
+        allPatterns.push(`*${fn}*`);
+      }
     }
+    // Deduplicate
+    const uniquePatterns = [...new Set(allPatterns)];
+    params.title = `ilike(any).{${uniquePatterns.join(',')}}`;
   } else if (!hasUserSearch) {
     // Default: only show jobs matching our supported job functions
     params.title = `ilike(any).{${RELEVANT_TITLE_PATTERNS.join(',')}}`;
@@ -163,10 +214,23 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     }
   }
 
-  // Remote Type Filter
+  // Remote Type Filter — loosened to include NULL and location-based fallbacks
   const remoteType = sp.get('remote_type');
   if (remoteType && remoteType !== 'ALL') {
-    params.remote_type = `eq.${remoteType}`;
+    if (remoteType === 'REMOTE') {
+      // Match explicit remote_type OR location containing "Remote"
+      params.or = params.or
+        ? `(${params.or.slice(1, -1)},remote_type.eq.REMOTE,location.ilike.*remote*)`
+        : `(remote_type.eq.REMOTE,location.ilike.*remote*)`;
+    } else if (remoteType === 'ONSITE') {
+      // Onsite: explicit ONSITE or NULL (many on-site jobs don't have remote_type set)
+      params.or = params.or
+        ? `(${params.or.slice(1, -1)},remote_type.eq.ONSITE,remote_type.is.null)`
+        : `(remote_type.eq.ONSITE,remote_type.is.null)`;
+    } else {
+      // HYBRID or any other value: exact match
+      params.remote_type = `eq.${remoteType}`;
+    }
   }
 
   // Source ATS Filter
@@ -175,12 +239,26 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     params.source = `eq.${source}`;
   }
 
-  // Skills Filter
+  // Skills Filter — use array overlap + title fallback for unenriched jobs
   const skills = sp.get('skills');
   if (skills) {
     const skillList = skills.split(',').map(s => s.trim()).filter(Boolean);
     if (skillList.length > 0) {
-      params.skills = `ov.{${skillList.join(',')}}`;
+      // Match jobs where skills array overlaps OR title contains any skill keyword
+      const titleFallbacks = skillList.map(s => `title.ilike.*${s}*`);
+      const skillsOr = `(skills.ov.{${skillList.join(',')}},${titleFallbacks.join(',')})`;
+      // Merge into existing OR if present, otherwise set new
+      if (params.or) {
+        // We need to AND this with the existing OR — use params.and instead
+        if (params.and) {
+          params.and = `(${params.and.slice(1, -1)},or${skillsOr})`;
+        } else {
+          params.and = `(${params.or},or${skillsOr})`;
+          delete params.or;
+        }
+      } else {
+        params.or = skillsOr;
+      }
     }
   }
 
