@@ -159,9 +159,9 @@ def main():
 
             direct = fetch_direct_url(job_url)
             if direct and "jobright.ai" not in direct:
-                supabase.table("jobs").update({"apply_url": direct}).eq("id", job["id"]).execute()
+                supabase.table("jobs").update({"apply_url": direct, "apply_url_original": direct}).eq("id", job["id"]).execute()
                 updated += 1
-                print(f"  ✓ {job.get('company_name', '?')}: {direct[:60]}...")
+                print(f"  [OK] {job.get('company_name', '?')}: {direct[:60]}...")
             else:
                 failed += 1
 
