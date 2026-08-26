@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import LocationFilterPopover, { LocationFilterState } from "@/components/LocationFilterPopover";
 import JobFunctionFilterPopover from "@/components/JobFunctionFilterPopover";
+import DatePostedFilterPopover from "@/components/DatePostedFilterPopover";
 import CustomDropdown from "@/components/CustomDropdown";
 import CvGeneratorModal from "@/components/CvGeneratorModal";
 import CoverLetterModal from "@/components/CoverLetterModal";
@@ -661,6 +662,7 @@ export default function JobsDashboard() {
     cityOrState: "",
   });
   const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
+  const [datePosted, setDatePosted] = useState("");
   const [remoteType, setRemoteType] = useState("");
   const [source, setSource] = useState("");
   const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
@@ -855,7 +857,7 @@ export default function JobsDashboard() {
     if (!showAppliedRef.current) appliedSetRef.current.forEach(id => excludeIds.push(id));
     if (!showHiddenRef.current) hiddenSetRef.current.forEach(id => excludeIds.push(id));
 
-    const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${selectedFunctions.sort().join(",")}_${remoteType}_${source}_${[...selectedSkills].sort().join(",")}_ex${excludeIds.length}`;
+    const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${selectedFunctions.sort().join(",")}_${datePosted}_${remoteType}_${source}_${[...selectedSkills].sort().join(",")}_ex${excludeIds.length}`;
     const cached = jobsMemoryCache.get(cacheKey);
     const isCacheValid = cached && (Date.now() - cached.timestamp < 60000); // 60s cache
 
@@ -882,6 +884,7 @@ export default function JobsDashboard() {
       if (locationState.country) params.set("country", locationState.country);
       if (locationState.cityOrState) params.set("location", locationState.cityOrState);
       if (selectedFunctions.length > 0) params.set("functions", selectedFunctions.join(","));
+      if (datePosted) params.set("date_posted", datePosted);
       if (remoteType) params.set("remote_type", remoteType);
       if (source) params.set("source", source);
       if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
@@ -919,7 +922,7 @@ export default function JobsDashboard() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, locationState, selectedFunctions, remoteType, source, selectedSkills]);
+  }, [query, locationState, selectedFunctions, datePosted, remoteType, source, selectedSkills]);
 
   // When filters change, reset to page 1
   useEffect(() => { setPage(1); fetchJobs(1); }, [fetchJobs]);
@@ -1083,6 +1086,12 @@ export default function JobsDashboard() {
           onChange={(fns) => setSelectedFunctions(fns)}
         />
 
+        {/* Date Posted Popover */}
+        <DatePostedFilterPopover
+          value={datePosted}
+          onChange={(val) => setDatePosted(val)}
+        />
+
         {/* Work Type Dropdown */}
         <CustomDropdown
           value={remoteType}
@@ -1144,13 +1153,14 @@ export default function JobsDashboard() {
         </button>
 
         {/* Reset Filters */}
-        {(query || locationState.cityOrState || locationState.country !== "ALL" || selectedFunctions.length > 0 || remoteType || source || selectedSkills.size > 0) && (
+        {(query || locationState.cityOrState || locationState.country !== "ALL" || selectedFunctions.length > 0 || datePosted || remoteType || source || selectedSkills.size > 0) && (
           <button
             type="button"
             onClick={() => {
               setQuery("");
               setLocationState({ country: "ALL", allLocationsInCountry: true, cityOrState: "" });
               setSelectedFunctions([]);
+              setDatePosted("");
               setRemoteType("");
               setSource("");
               setSelectedSkills(new Set());

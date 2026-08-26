@@ -61,7 +61,15 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
   const perPage = Math.min(parseInt(sp.get('per_page') || '12', 10), 50);
   const offset = (page - 1) * perPage;
 
-  const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  // Date Posted Filter (24h, 3d, 7d, 14d — default 14d)
+  const datePosted = sp.get('date_posted');
+  let daysWindow = 14;
+  if (datePosted === '24h' || datePosted === '1') daysWindow = 1;
+  else if (datePosted === '3d' || datePosted === '3') daysWindow = 3;
+  else if (datePosted === '7d' || datePosted === '7') daysWindow = 7;
+  else if (datePosted === '14d' || datePosted === '14') daysWindow = 14;
+
+  const dateCutoff = new Date(Date.now() - daysWindow * 24 * 60 * 60 * 1000).toISOString();
 
   const params: Record<string, string> = {
     select: SELECT_FIELDS,
@@ -75,8 +83,8 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     params.id = `not.in.(${excludeIds.join(',')})`;
   }
 
-  // 14-day freshness condition (jobs older than 2 weeks are excluded)
-  const freshnessCond = `or(posted_at.gte.${twoWeeksAgo},and(posted_at.is.null,created_at.gte.${twoWeeksAgo}))`;
+  // Freshness condition based on chosen date window
+  const freshnessCond = `or(posted_at.gte.${dateCutoff},and(posted_at.is.null,created_at.gte.${dateCutoff}))`;
 
   // Sorting
   const sortBy = sp.get('sort_by') || 'newest';
@@ -98,7 +106,7 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     const term = q!.trim();
     params.and = `(${freshnessCond},or(title.ilike.*${term}*,company_name.ilike.*${term}*,location.ilike.*${term}*))`;
   } else {
-    params.or = `(posted_at.gte.${twoWeeksAgo},and(posted_at.is.null,created_at.gte.${twoWeeksAgo}))`;
+    params.or = `(posted_at.gte.${dateCutoff},and(posted_at.is.null,created_at.gte.${dateCutoff}))`;
   }
 
   // Country & Location Filters
