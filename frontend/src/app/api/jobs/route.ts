@@ -56,8 +56,7 @@ function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T
   return result;
 }
 
-export async function GET(req: NextRequest) {
-  const sp = req.nextUrl.searchParams;
+async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = []) {
   const page = parseInt(sp.get('page') || '1', 10);
   const perPage = Math.min(parseInt(sp.get('per_page') || '12', 10), 50);
   const offset = (page - 1) * perPage;
@@ -70,6 +69,11 @@ export async function GET(req: NextRequest) {
     limit: String(perPage),
     offset: String(offset),
   };
+
+  // Exclude hidden/applied job IDs so pagination counts are accurate
+  if (excludeIds.length > 0) {
+    params.id = `not.in.(${excludeIds.join(',')})`;
+  }
 
   // 30-day freshness condition
   const freshnessCond = `or(posted_at.gte.${thirtyDaysAgo},and(posted_at.is.null,created_at.gte.${thirtyDaysAgo}))`;
@@ -125,7 +129,7 @@ export async function GET(req: NextRequest) {
     params.title = `ilike(any).{${RELEVANT_TITLE_PATTERNS.join(',')}}`;
   }
 
-  // Exact IDs filter (for Saved Jobs catalogue)
+  // Exact IDs filter (for Saved Jobs catalogue) — overrides exclusion
   const ids = sp.get('ids');
   if (ids) {
     const idList = ids.split(',').map(id => id.trim()).filter(Boolean);
@@ -159,7 +163,6 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Query all active jobs (title relevance filter already applied in params)
     const res = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
 
     let results: any[] = [];
@@ -193,5 +196,15 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
   }
+}
+
+export async function GET(req: NextRequest) {
+  return handleJobsRequest(req.nextUrl.searchParams);
+}
+
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  const excludeIds: string[] = Array.isArray(body.excludeIds) ? body.excludeIds : [];
+  return handleJobsRequest(req.nextUrl.searchParams, excludeIds);
 }
 

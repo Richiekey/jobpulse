@@ -713,6 +713,16 @@ export default function JobsDashboard() {
   const [showHidden, setShowHidden] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Refs for tracking sets — used inside fetchJobs to avoid adding sets to deps
+  const appliedSetRef = useRef(appliedSet);
+  const hiddenSetRef = useRef(hiddenSet);
+  const showAppliedRef = useRef(showApplied);
+  const showHiddenRef = useRef(showHidden);
+  useEffect(() => { appliedSetRef.current = appliedSet; }, [appliedSet]);
+  useEffect(() => { hiddenSetRef.current = hiddenSet; }, [hiddenSet]);
+  useEffect(() => { showAppliedRef.current = showApplied; }, [showApplied]);
+  useEffect(() => { showHiddenRef.current = showHidden; }, [showHidden]);
+
   // Load tracking from localStorage
   useEffect(() => {
     setAppliedSet(getStoredSet("jp_applied"));
@@ -844,7 +854,12 @@ export default function JobsDashboard() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${selectedFunctions.sort().join(",")}_${remoteType}_${source}_${[...selectedSkills].sort().join(",")}`;
+    // Build exclusion list from refs (not state — avoids dep array churn)
+    const excludeIds: string[] = [];
+    if (!showAppliedRef.current) appliedSetRef.current.forEach(id => excludeIds.push(id));
+    if (!showHiddenRef.current) hiddenSetRef.current.forEach(id => excludeIds.push(id));
+
+    const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${selectedFunctions.sort().join(",")}_${remoteType}_${source}_${[...selectedSkills].sort().join(",")}_ex${excludeIds.length}`;
     const cached = jobsMemoryCache.get(cacheKey);
     const isCacheValid = cached && (Date.now() - cached.timestamp < 60000); // 60s cache
 
@@ -876,7 +891,14 @@ export default function JobsDashboard() {
       if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
 
       const timeoutId = setTimeout(() => controller.abort(), 12000);
-      const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, { signal: controller.signal });
+      // Use POST when we have excluded IDs to avoid URL length limits
+      const fetchOptions: RequestInit = { signal: controller.signal };
+      if (excludeIds.length > 0) {
+        fetchOptions.method = 'POST';
+        fetchOptions.headers = { 'Content-Type': 'application/json' };
+        fetchOptions.body = JSON.stringify({ excludeIds });
+      }
+      const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, fetchOptions);
       clearTimeout(timeoutId);
 
       if (res.ok) {
