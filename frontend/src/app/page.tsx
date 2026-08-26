@@ -89,15 +89,11 @@ function formatSalary(min?: number, max?: number, currency?: string, period?: st
   return `Up to ${curr}${fmt(max!)}${suffix}`;
 }
 
-function timeAgo(dateStr?: string) {
-  if (!dateStr) return "Recently";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days}d ago`;
-  if (days < 30) return `${Math.floor(days / 7)}w ago`;
-  return `${Math.floor(days / 30)}mo ago`;
+function formatPostingDate(dateStr?: string): string {
+  if (!dateStr) return "Recent";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "Recent";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function freshnessColor(dateStr?: string): { dot: string; label: string } {
@@ -274,7 +270,7 @@ function JobModal({
               )}
               <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: freshness.dot }} />
-                {timeAgo(job.posted_at || job.created_at)}
+                {formatPostingDate(job.posted_at || job.created_at)}
               </span>
             </div>
           </div>
@@ -1391,7 +1387,7 @@ export default function JobsDashboard() {
                       </div>
                       <span
                         className={`freshness-dot ${freshness.label === 'New' ? 'freshness-new' : freshness.label === 'Recent' ? 'freshness-recent' : 'freshness-aging'}`}
-                        title={`${freshness.label} — ${timeAgo(job.posted_at || job.created_at)}`}
+                        title={`${freshness.label} — Posted ${formatPostingDate(job.posted_at || job.created_at)}`}
                       />
                     </div>
 
@@ -1448,7 +1444,7 @@ export default function JobsDashboard() {
                   {/* Card Footer */}
                   <div className="job-card-footer">
                     <span style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, fontVariantNumeric: "tabular-nums" }}>
-                      <Clock size={11} /> {timeAgo(job.posted_at || job.created_at)}
+                      <Clock size={11} /> {formatPostingDate(job.posted_at || job.created_at)}
                     </span>
                     <div className="job-card-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <button
