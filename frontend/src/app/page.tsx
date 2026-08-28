@@ -1390,10 +1390,22 @@ export default function JobsDashboard() {
               Frontend
             </button>
 
-            <button type="button" onClick={() => toggleFn("Machine Learning Engineer")} style={pillStyle(selectedFunctions.includes("Machine Learning Engineer"))}>
-              <BrainCircuit size={13} style={iconColor(selectedFunctions.includes("Machine Learning Engineer"))} />
-              AI / ML
-            </button>
+            {(() => {
+              const isAiMlActive = selectedFunctions.includes("Machine Learning Engineer") || selectedFunctions.includes("AI Engineer");
+              const toggleAiMl = () => {
+                if (isAiMlActive) {
+                  setSelectedFunctions(selectedFunctions.filter(f => f !== "Machine Learning Engineer" && f !== "AI Engineer"));
+                } else {
+                  setSelectedFunctions([...selectedFunctions.filter(f => f !== "Machine Learning Engineer" && f !== "AI Engineer"), "Machine Learning Engineer", "AI Engineer"]);
+                }
+              };
+              return (
+                <button type="button" onClick={toggleAiMl} style={pillStyle(isAiMlActive)}>
+                  <BrainCircuit size={13} style={iconColor(isAiMlActive)} />
+                  AI / ML
+                </button>
+              );
+            })()}
 
             <button type="button" onClick={() => toggleFn("Data Analyst")} style={pillStyle(selectedFunctions.includes("Data Analyst"))}>
               <LineChart size={13} style={iconColor(selectedFunctions.includes("Data Analyst"))} />
