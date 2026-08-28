@@ -214,23 +214,10 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     }
   }
 
-  // Remote Type Filter — loosened to include NULL and location-based fallbacks
+  // Remote Type Filter (REMOTE, HYBRID, ONSITE)
   const remoteType = sp.get('remote_type');
   if (remoteType && remoteType !== 'ALL') {
-    if (remoteType === 'REMOTE') {
-      // Match explicit remote_type OR location containing "Remote"
-      params.or = params.or
-        ? `(${params.or.slice(1, -1)},remote_type.eq.REMOTE,location.ilike.*remote*)`
-        : `(remote_type.eq.REMOTE,location.ilike.*remote*)`;
-    } else if (remoteType === 'ONSITE') {
-      // Onsite: explicit ONSITE or NULL (many on-site jobs don't have remote_type set)
-      params.or = params.or
-        ? `(${params.or.slice(1, -1)},remote_type.eq.ONSITE,remote_type.is.null)`
-        : `(remote_type.eq.ONSITE,remote_type.is.null)`;
-    } else {
-      // HYBRID or any other value: exact match
-      params.remote_type = `eq.${remoteType}`;
-    }
+    params.remote_type = `eq.${remoteType}`;
   }
 
   // Source ATS Filter

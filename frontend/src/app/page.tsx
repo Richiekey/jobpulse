@@ -16,7 +16,7 @@ import { ResumeData } from "@/lib/pdfGenerator";
 import { estimateJobSalary } from "@/lib/salaryEstimator";
 import {
   Search, Download, Briefcase, MapPin, Building2, ExternalLink,
-  Loader2, ChevronLeft, ChevronRight, DollarSign, Clock, X,
+  Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, DollarSign, Clock, X,
   Bookmark, BookmarkCheck, CheckCircle2, ThumbsDown, Eye, EyeOff,
   Filter, Tag, Sparkles, RotateCcw, Globe, Mail, MessageSquare, Camera,
   Code, Server, Monitor, BrainCircuit, LineChart, ShieldAlert, AlertCircle,
@@ -120,6 +120,19 @@ function remoteBadgeClass(type: string) {
   if (type === "REMOTE") return "badge badge-remote";
   if (type === "HYBRID") return "badge badge-hybrid";
   return "badge badge-onsite";
+}
+
+function getPaginationItems(current: number, total: number): (number | 'ellipsis-left' | 'ellipsis-right')[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, 'ellipsis-right', total];
+  }
+  if (current >= total - 3) {
+    return [1, 'ellipsis-left', total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, 'ellipsis-left', current - 1, current, current + 1, 'ellipsis-right', total];
 }
 
 function sourceBadgeClass(source: string) {
@@ -1760,69 +1773,107 @@ export default function JobsDashboard() {
             </div>
           )}
 
-          {/* ── Chunked Numbered Pagination Bar ─────────────────── */}
-          {totalPages > 1 && (() => {
-            const BLOCK_SIZE = 10;
-            const currentBlock = Math.floor((page - 1) / BLOCK_SIZE);
-            const startPage = currentBlock * BLOCK_SIZE + 1;
-            const endPage = Math.min(startPage + BLOCK_SIZE - 1, totalPages);
+          {/* ── Sliding Window Numbered Pagination Bar ─────────────── */}
+          {totalPages > 1 && (
+            <div style={{ marginTop: 40, marginBottom: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }} className="animate-fade-in-up">
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 4, userSelect: "none" }}>
+                {/* First Page Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(1)}
+                  disabled={page <= 1}
+                  className="pagination-btn"
+                  style={{ paddingLeft: 8, paddingRight: 8 }}
+                  title="First page"
+                >
+                  <ChevronsLeft size={15} />
+                </button>
 
-            const pageNumbers: number[] = [];
-            for (let i = startPage; i <= endPage; i++) {
-              pageNumbers.push(i);
-            }
+                {/* Previous Page Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1}
+                  className="pagination-btn"
+                  style={{ paddingLeft: 8, paddingRight: 8 }}
+                  title="Previous page"
+                >
+                  <ChevronLeft size={15} />
+                </button>
 
-            const hasPrevBlock = startPage > 1;
-            const hasNextBlock = endPage < totalPages;
-
-            return (
-              <div style={{ marginTop: 40, marginBottom: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }} className="animate-fade-in-up">
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 4, userSelect: "none" }}>
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={page <= 1}
-                    className="pagination-btn"
-                    style={{ paddingLeft: 10, paddingRight: 10 }}
-                  >
-                    <ChevronLeft size={15} />
-                  </button>
-
-
-
-                  {pageNumbers.map((p) => (
+                {/* Page Numbers & Ellipses */}
+                {getPaginationItems(page, totalPages).map((item, idx) => {
+                  if (item === 'ellipsis-left') {
+                    return (
+                      <button
+                        key={`ellipsis-left-${idx}`}
+                        type="button"
+                        onClick={() => handlePageChange(Math.max(1, page - 5))}
+                        className="pagination-ellipsis"
+                        title="Jump back 5 pages"
+                      >
+                        ···
+                      </button>
+                    );
+                  }
+                  if (item === 'ellipsis-right') {
+                    return (
+                      <button
+                        key={`ellipsis-right-${idx}`}
+                        type="button"
+                        onClick={() => handlePageChange(Math.min(totalPages, page + 5))}
+                        className="pagination-ellipsis"
+                        title="Jump forward 5 pages"
+                      >
+                        ···
+                      </button>
+                    );
+                  }
+                  return (
                     <button
-                      key={p}
+                      key={item}
                       type="button"
-                      onClick={() => handlePageChange(p)}
-                      className={`pagination-btn ${p === page ? 'pagination-active' : ''}`}
+                      onClick={() => handlePageChange(item)}
+                      className={`pagination-btn ${item === page ? 'pagination-active' : ''}`}
                     >
-                      {p}
+                      {item}
                     </button>
-                  ))}
+                  );
+                })}
 
+                {/* Next Page Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages}
+                  className="pagination-btn"
+                  style={{ paddingLeft: 8, paddingRight: 8 }}
+                  title="Next page"
+                >
+                  <ChevronRight size={15} />
+                </button>
 
-
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={page >= totalPages}
-                    className="pagination-btn"
-                    style={{ paddingLeft: 10, paddingRight: 10 }}
-                  >
-                    <ChevronRight size={15} />
-                  </button>
-                </div>
-
-                <div style={{ fontSize: 12, color: "var(--text-dimmed)", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "-0.02em" }}>
-                  <span style={{ color: "var(--text-muted)" }}>{page}</span>
-                  <span style={{ margin: "0 4px" }}>/</span>
-                  <span style={{ color: "var(--text-muted)" }}>{totalPages}</span>
-                  {total > 0 && <span style={{ color: "var(--text-dimmed)", marginLeft: 8 }}>· {total.toLocaleString()} jobs</span>}
-                </div>
+                {/* Last Page Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={page >= totalPages}
+                  className="pagination-btn"
+                  style={{ paddingLeft: 8, paddingRight: 8 }}
+                  title="Last page"
+                >
+                  <ChevronsRight size={15} />
+                </button>
               </div>
-            );
-          })()}
+
+              <div style={{ fontSize: 12, color: "var(--text-dimmed)", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "-0.02em" }}>
+                <span style={{ color: "var(--text-muted)" }}>{page}</span>
+                <span style={{ margin: "0 4px" }}>/</span>
+                <span style={{ color: "var(--text-muted)" }}>{totalPages}</span>
+                {total > 0 && <span style={{ color: "var(--text-dimmed)", marginLeft: 8 }}>· {total.toLocaleString()} jobs</span>}
+              </div>
+            </div>
+          )}
         </>
       )}
 

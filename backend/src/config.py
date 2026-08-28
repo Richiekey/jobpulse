@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     request_timeout_seconds: int = 30
     max_retries: int = 3
     
+    # Jobright auth settings
+    jobright_email: Optional[str] = None
+    jobright_password: Optional[str] = None
+    
     # API settings
     api_host: str = "0.0.0.0"
     api_port: int = 8000

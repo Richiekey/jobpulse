@@ -1,3 +1,5 @@
+import os
+import time
 import re
 import json
 from typing import List, Dict, Any, Optional
@@ -24,6 +26,46 @@ class JobrightAdapter(BaseAdapter):
     and enriches job details via the structured JSON-LD / helper payloads on jobright.ai/jobs/info/{id}.
     """
     platform = ATSPlatform.JOBRIGHT
+    _cached_session_id: Optional[str] = None
+    _session_expires_at: float = 0.0
+
+    async def _ensure_session(self) -> Optional[str]:
+        """Authenticates with Jobright using credentials and returns SESSION_ID cookie value."""
+        if self._cached_session_id and time.time() < self._session_expires_at:
+            return self._cached_session_id
+
+        email = os.getenv("JOBRIGHT_EMAIL", "")
+        password = os.getenv("JOBRIGHT_PASSWORD", "")
+        if not email or not password:
+            return None
+
+        try:
+            resp = await self.client.post(
+                "https://jobright.ai/swan/auth/login/pwd",
+                json={"email": email, "password": password},
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Origin": "https://jobright.ai",
+                    "Referer": "https://jobright.ai/",
+                }
+            )
+            if resp.status_code == 200:
+                cookie_header = resp.headers.get("set-cookie", "")
+                match = re.search(r"SESSION_ID=([^;]+)", cookie_header)
+                if match:
+                    self._cached_session_id = match.group(1)
+                    self._session_expires_at = time.time() + 86400 * 30
+                    logger.info("jobright_session_authenticated")
+                    return self._cached_session_id
+                else:
+                    logger.warn("jobright_session_no_cookie_header", resp_status=resp.status_code)
+            else:
+                logger.warn("jobright_login_failed", status=resp.status_code, body=resp.text[:200])
+        except Exception as e:
+            logger.error("jobright_login_error", error=str(e))
+
+        return None
 
     async def fetch_jobs(self, company_identifier: str) -> List[Dict[str, Any]]:
         """
