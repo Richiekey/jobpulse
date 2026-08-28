@@ -957,10 +957,10 @@ export default function JobsDashboard() {
 
     const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${selectedFunctions.sort().join(",")}_${datePosted}_${remoteType}_${source}_${[...selectedSkills].sort().join(",")}_ex${excludeIds.length}`;
     const cached = jobsMemoryCache.get(cacheKey);
-    const isCacheValid = cached && (Date.now() - cached.timestamp < 60000); // 60s cache
+    const isCacheValid = cached && (cached.items?.length > 0) && (Date.now() - cached.timestamp < 60000); // 60s cache
 
-    // If valid in cache, render immediately (0ms latency)
-    if (cached) {
+    // If valid in cache with jobs, render immediately (0ms latency)
+    if (cached && cached.items && cached.items.length > 0) {
       setJobs(cached.items);
       setTotal(cached.total);
       setTotalPages(Math.ceil((cached.total || 0) / PAGE_SIZE));
@@ -1003,7 +1003,9 @@ export default function JobsDashboard() {
         const items = data.items || [];
         const tot = data.total || 0;
 
-        jobsMemoryCache.set(cacheKey, { items, total: tot, timestamp: Date.now() });
+        if (items.length > 0) {
+          jobsMemoryCache.set(cacheKey, { items, total: tot, timestamp: Date.now() });
+        }
 
         setJobs(items);
         setTotal(tot);
@@ -1024,6 +1026,14 @@ export default function JobsDashboard() {
 
   // Single effect: when filters change, reset to page 1 and fetch
   useEffect(() => { setPage(1); fetchJobs(1); }, [fetchJobs]);
+
+  // Re-fetch when user authentication resolves
+  useEffect(() => {
+    if (user) {
+      jobsMemoryCache.clear();
+      fetchJobs(1);
+    }
+  }, [user, fetchJobs]);
 
   const handleSearch = () => {
     // Immediately commit the search input and let the effect handle the fetch
