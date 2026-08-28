@@ -51,6 +51,7 @@ interface AuthContextType {
   isAdmin: boolean;
   syncIndicator: SyncIndicatorState;
   signIn: (email: string, pass: string) => Promise<{ error?: string }>;
+  signUp: (email: string, pass: string, fullName: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
@@ -296,6 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         syncIndicator,
         signIn,
+        signUp,
         signOut,
         updateProfile,
         refreshProfile,

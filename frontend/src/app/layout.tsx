@@ -5,6 +5,8 @@ import { Navbar } from "@/components/Navbar";
 import { AuthGuard } from "@/components/AuthGuard";
 import FloatingSyncIndicator from "@/components/FloatingSyncIndicator";
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 export const metadata: Metadata = {
   title: "JobPulse — Multi-ATS Job Aggregator",
   description: "Discover, search, and track job postings aggregated from Greenhouse, Ashby, Lever and more ATS platforms",
@@ -37,9 +39,11 @@ export default function RootLayout({
               zIndex: 1,
             }}
           >
-            <AuthGuard>
-              {children}
-            </AuthGuard>
+            <ErrorBoundary>
+              <AuthGuard>
+                {children}
+              </AuthGuard>
+            </ErrorBoundary>
           </main>
 
           {/* ── Footer ────────────────────────── */}

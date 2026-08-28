@@ -200,14 +200,17 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Missing application id or (userId + jobId)' }, { status: 400 });
     }
 
-    const { url, key } = (() => {
-      const u = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const k = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
-      return { url: u, key: k };
-    })();
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
+
+    if (!url || !key) {
+      return NextResponse.json({ error: 'Database service configuration missing' }, { status: 500 });
+    }
 
     let query = '';
-    if (id) {
+    if (id && userId) {
+      query = `and(id.eq.${id},user_id.eq.${userId})`;
+    } else if (id) {
       query = `id=eq.${id}`;
     } else if (userId && jobId) {
       query = `and(user_id.eq.${userId},job_id.eq.${jobId})`;

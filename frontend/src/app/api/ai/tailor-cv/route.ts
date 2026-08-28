@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callLLM } from "@/lib/ai/llmClient";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Allow sufficient LLM processing time
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "anon_user";
+    const rateCheck = checkRateLimit(`ai_cv_${ip}`, 15, 60 * 1000);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: `AI request rate limit reached. Please wait ${rateCheck.resetInSeconds}s before generating another CV.` },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const {
       jobTitle,

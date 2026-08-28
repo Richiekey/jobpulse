@@ -36,7 +36,8 @@ interface Job {
   role_category?: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { API_BASE } from "@/lib/constants";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 function getStoredSet(key: string): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -101,14 +102,24 @@ export default function SavedJobsPage() {
   // Modal
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
-  // Fetch on mount
+  // Fetch on mount and reactively on savedIds change / storage update
   useEffect(() => {
-    if (savedIds.size === 0) {
-      setLoading(false);
-      return;
-    }
     fetchSavedJobs(savedIds);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    const syncStorage = () => {
+      const freshSaved = getStoredSet("jp_saved");
+      setSavedIds(freshSaved);
+      setAppliedIds(getStoredSet("jp_applied"));
+      setNotes(getStoredNotes());
+      fetchSavedJobs(freshSaved);
+    };
+
+    window.addEventListener("focus", syncStorage);
+    window.addEventListener("jp_storage_update", syncStorage);
+    return () => {
+      window.removeEventListener("focus", syncStorage);
+      window.removeEventListener("jp_storage_update", syncStorage);
+    };
   }, []);
 
   const fetchSavedJobs = async (idsSet: Set<string>) => {

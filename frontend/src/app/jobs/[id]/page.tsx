@@ -9,6 +9,7 @@ import {
 import { resolveDirectApplyUrl } from "@/lib/jobUrls";
 import { estimateJobSalary } from "@/lib/salaryEstimator";
 import { ResumeData } from "@/lib/pdfGenerator";
+import { sanitizeHtml } from "@/lib/sanitize";
 import CvGeneratorModal from "@/components/CvGeneratorModal";
 import CoverLetterModal from "@/components/CoverLetterModal";
 
@@ -312,7 +313,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           {job.description ? (
             <div
               style={{ color: "var(--text-secondary)", fontSize: 15, lineHeight: 1.7 }}
-              dangerouslySetInnerHTML={{ __html: job.description }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.description) }}
             />
           ) : (
             <p style={{ color: "var(--text-muted)", fontSize: 14 }}>
