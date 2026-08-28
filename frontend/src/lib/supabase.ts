@@ -3,7 +3,7 @@
 
 function getConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   return { url, key };
 }
 
@@ -47,5 +47,9 @@ export async function supabaseFetch(
   }
 
   const res = await fetch(target.toString(), fetchOptions);
+  if (!res.ok) {
+    const errText = await res.clone().text();
+    console.error("[supabaseFetch ERROR]", res.status, res.statusText, "URL:", target.toString(), "Error:", errText);
+  }
   return res;
 }
