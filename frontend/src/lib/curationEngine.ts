@@ -220,15 +220,23 @@ export function balanceJobDiversity(
   const companyCounts = new Map<string, number>();
   const selected: ScoredJob[] = [];
   const selectedIds = new Set<string>();
+  const seenJobSignatures = new Set<string>();
 
-  // Helper to add job if company cap permits
+  // Helper to add job if company cap permits and job is not a duplicate title
   const tryAddJob = (job: ScoredJob): boolean => {
     if (selectedIds.has(job.id)) return false;
-    const compKey = (job.company_name || "Unknown").trim().toLowerCase();
-    const currentCount = companyCounts.get(compKey) || 0;
+    const compKey = (job.company_name || "Unknown").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const titleKey = (job.title || "Untitled").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const signature = `${compKey}:::${titleKey}`;
+
+    if (seenJobSignatures.has(signature)) return false;
+
+    const rawComp = (job.company_name || "Unknown").trim().toLowerCase();
+    const currentCount = companyCounts.get(rawComp) || 0;
     if (currentCount >= maxPerCompany) return false;
 
-    companyCounts.set(compKey, currentCount + 1);
+    companyCounts.set(rawComp, currentCount + 1);
+    seenJobSignatures.add(signature);
     selected.push(job);
     selectedIds.add(job.id);
     return true;
@@ -258,16 +266,22 @@ export function balanceJobDiversity(
     }
   }
 
-  // Pass 2: If we still haven't reached 1,000 due to strict company caps, relax company cap by +2
+  // Pass 2: If we still haven't reached target total due to strict company caps, relax company cap
   if (selected.length < targetTotal) {
     const relaxedCap = maxPerCompany + 2;
     for (const job of qualified) {
       if (selected.length >= targetTotal) break;
       if (selectedIds.has(job.id)) continue;
-      const compKey = (job.company_name || "Unknown").trim().toLowerCase();
-      const currentCount = companyCounts.get(compKey) || 0;
+      const compKey = (job.company_name || "Unknown").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const titleKey = (job.title || "Untitled").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const signature = `${compKey}:::${titleKey}`;
+      if (seenJobSignatures.has(signature)) continue;
+
+      const rawComp = (job.company_name || "Unknown").trim().toLowerCase();
+      const currentCount = companyCounts.get(rawComp) || 0;
       if (currentCount < relaxedCap) {
-        companyCounts.set(compKey, currentCount + 1);
+        companyCounts.set(rawComp, currentCount + 1);
+        seenJobSignatures.add(signature);
         selected.push(job);
         selectedIds.add(job.id);
       }
@@ -278,10 +292,15 @@ export function balanceJobDiversity(
   if (selected.length < targetTotal) {
     for (const job of qualified) {
       if (selected.length >= targetTotal) break;
-      if (!selectedIds.has(job.id)) {
-        selected.push(job);
-        selectedIds.add(job.id);
-      }
+      if (selectedIds.has(job.id)) continue;
+      const compKey = (job.company_name || "Unknown").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const titleKey = (job.title || "Untitled").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const signature = `${compKey}:::${titleKey}`;
+      if (seenJobSignatures.has(signature)) continue;
+
+      seenJobSignatures.add(signature);
+      selected.push(job);
+      selectedIds.add(job.id);
     }
   }
 

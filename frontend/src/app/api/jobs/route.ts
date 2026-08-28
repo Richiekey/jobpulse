@@ -55,11 +55,27 @@ const RELEVANT_TITLE_PATTERNS = [
   '*VP of Engineering*', '*Head of Engineering*', '*Chief Technology Officer*', 'CTO *', '* CTO *', '* CTO',
 ];
 
-function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T[] {
+function deduplicateAndInterleaveJobs<T extends { id?: string; title?: string; company_name?: string }>(items: T[]): T[] {
   if (!items || items.length <= 1) return items;
 
-  const companyBuckets = new Map<string, T[]>();
+  // 1. Strict Deduplication by normalized signature (company_name + title)
+  const seenSignatures = new Set<string>();
+  const uniqueItems: T[] = [];
+
   for (const item of items) {
+    const comp = (item.company_name || 'Unknown').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const title = (item.title || 'Untitled').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const signature = `${comp}:::${title}`;
+
+    if (!seenSignatures.has(signature)) {
+      seenSignatures.add(signature);
+      uniqueItems.push(item);
+    }
+  }
+
+  // 2. Interleave companies so cards from the same company are never adjacent
+  const companyBuckets = new Map<string, T[]>();
+  for (const item of uniqueItems) {
     const key = (item.company_name || 'Unknown').trim().toLowerCase();
     if (!companyBuckets.has(key)) {
       companyBuckets.set(key, []);
@@ -68,7 +84,7 @@ function interleaveCompanies<T extends { company_name?: string }>(items: T[]): T
   }
 
   const result: T[] = [];
-  let remaining = items.length;
+  let remaining = uniqueItems.length;
   while (remaining > 0) {
     for (const [_, queue] of companyBuckets.entries()) {
       if (queue.length > 0) {
@@ -296,7 +312,7 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
       console.warn("Supabase query note:", res.status);
     }
 
-    const diverseResults = interleaveCompanies(results);
+    const diverseResults = deduplicateAndInterleaveJobs(results);
 
     return NextResponse.json({
       items: diverseResults,
