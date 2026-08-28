@@ -6,17 +6,49 @@ export const revalidate = 0;
 
 // Keywords representing our supported tech/business job functions
 const RELEVANT_TITLE_PATTERNS = [
-  "*Engineer*", "*Developer*", "*DevOps*", "*SRE*", "*QA*", "*SDET*",
-  "*Full Stack*", "*Fullstack*", "*Backend*", "*Frontend*", "*Software*",
-  "*Mobile*", "*iOS*", "*Android*", "*Platform*", "*Infrastructure*",
-  "*Data*", "*Machine Learning*", "*ML *", "*AI *", "*Artificial Intelligence*",
-  "*NLP*", "*LLM*", "*Deep Learning*", "*Computer Vision*", "*Scientist*",
-  "*Analytics*", "*Security*", "*Cyber*", "*Cloud*", "*Network*",
-  "*Product Manager*", "*Program Manager*", "*TPM*", "*Designer*",
-  "*UX*", "*UI*", "*Scrum*", "*Agile*", "*Account Executive*", "*Sales*",
-  "*Marketing*", "*Operations*", "*Financial Analyst*", "*Business Analyst*",
-  "*Architect*", "*Technical*", "*Tech Lead*", "*CTO*", "*VP Engineering*",
-  "*Head of*", "*Director*", "*Manager*",
+  // Software Engineering
+  '*Software Engineer*', '*Software Developer*', '*Full Stack*', '*Fullstack*', '*Full-Stack*',
+  '*Backend*', '*Back End*', '*Back-End*', '*Frontend*', '*Front End*', '*Front-End*',
+  '*Web Developer*', '*Python Developer*', '*Python Engineer*', '*Java Developer*', '*Java Engineer*',
+  '*C++*', '*C/C++*', '*.NET Developer*', '*.NET Engineer*', '*Dotnet*', '*C# Developer*', '*C# Engineer*',
+  '*Systems Engineer*', '*System Engineer*', '*DevOps*', '*Platform Engineer*', '*Infrastructure Engineer*',
+  '*Mobile Developer*', '*Mobile Engineer*', '*iOS Developer*', '*iOS Engineer*', '*Android Developer*', '*Android Engineer*',
+  '*React Native*', '*Flutter*', '*QA Engineer*', '*Quality Assurance Engineer*', '*SDET*', '*Test Automation*', '*Automation Engineer*',
+  '*Rust Developer*', '*Rust Engineer*', '*Golang*', '*Go Developer*', '*Go Engineer*',
+  '*Firmware Engineer*', '*Embedded Software*', '*Embedded Engineer*',
+
+  // Data & AI / ML
+  '*Data Analyst*', '*Data Analytics*', '*BI Analyst*', '*Business Intelligence Analyst*',
+  '*Data Scientist*', '*Data Science*', '*Applied Scientist*', '*Decision Scientist*',
+  '*Data Engineer*', '*Data Platform*', '*ETL Developer*', '*Data Warehouse*',
+  '*Machine Learning*', 'ML *', '* ML *', '* ML/*', '* ML-*', '* (ML)*', '* ML', '*MLOps*', '*Deep Learning*',
+  'AI *', '* AI *', '* AI/*', '* AI-*', '* (AI)*', '* AI', '*Artificial Intelligence*',
+  '*Generative AI*', '*GenAI*', '*Gen AI*', '*LLM*', '*NLP*', '*Computer Vision*', '*Prompt Engineer*', '*AI Agent*',
+
+  // Cybersecurity & Cloud
+  '*Cyber Security*', '*Cybersecurity*', '*Cloud Security*', '*Network Security*',
+  '*Security Engineer*', '*Security Analyst*', '*Security Architect*', '*Information Security*',
+  '*Infosec*', '*AppSec*', '*Application Security*', '*DevSecOps*', '*SOC Analyst*', '*Penetration Tester*',
+  '*Cloud Architect*', '*Cloud Engineer*', '*AWS Engineer*', '*Azure Engineer*', '*GCP Engineer*',
+  '*Site Reliability*', 'SRE *', '* SRE *', '* SRE',
+
+  // Product & Design
+  '*Product Manager*', '*Technical Program Manager*', 'TPM *', '* TPM *', '* TPM',
+  '*Product Designer*', '*UI/UX*', '*UI Designer*', '*UX Designer*', '*UX Researcher*',
+  '*User Experience*', '*User Interface*', '*Interaction Designer*', '*Design Systems*',
+  '*Scrum Master*', '*Agile Coach*',
+
+  // Business & Tech Ops
+  '*Account Executive*', '*Sales Development Representative*', '*Sales Development Rep*', '*SDR *', '* SDR *', '* SDR',
+  '*Business Development Representative*', '*BDR *', '* BDR *', '* BDR', '*Enterprise Sales*',
+  '*Growth Marketing*', '*Product Marketing*', '*Marketing Specialist*', '*Digital Marketing*',
+  '*Business Operations*', '*Revenue Operations*', '*RevOps*',
+  '*Financial Analyst*', '*Finance Analyst*', '*FP&A*',
+
+  // Engineering Leadership & Architecture
+  '*Software Architect*', '*Solutions Architect*', '*Staff Engineer*', '*Principal Engineer*',
+  '*Tech Lead*', '*Technical Lead*', '*Engineering Manager*', '*Director of Engineering*',
+  '*VP of Engineering*', '*Head of Engineering*', '*Chief Technology Officer*', 'CTO *', '* CTO *', '* CTO',
 ];
 
 import { ALL_ATS_PLATFORMS } from "@/lib/jobUrls";
