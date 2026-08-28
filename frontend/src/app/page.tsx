@@ -1009,7 +1009,31 @@ export default function JobsDashboard() {
 
         setJobs(items);
         setTotal(tot);
-        setTotalPages(Math.ceil(tot / PAGE_SIZE));
+        const calcTotalPages = Math.ceil(tot / PAGE_SIZE);
+        setTotalPages(calcTotalPages);
+
+        // Prefetch next page in background for 0ms instantaneous pagination
+        if (p < calcTotalPages) {
+          const nextP = p + 1;
+          const nextParams = new URLSearchParams(params);
+          nextParams.set("page", String(nextP));
+          const nextCacheKey = `${nextP}_${query}_${locationState.country}_${locationState.cityOrState}_${selectedFunctions.sort().join(",")}_${datePosted}_${remoteType}_${source}_${[...selectedSkills].sort().join(",")}_ex${excludeIds.length}`;
+
+          if (!jobsMemoryCache.has(nextCacheKey)) {
+            fetch(`${API_BASE}/jobs?${nextParams.toString()}`, fetchOptions)
+              .then((r) => (r.ok ? r.json() : null))
+              .then((nextData) => {
+                if (nextData && nextData.items && nextData.items.length > 0) {
+                  jobsMemoryCache.set(nextCacheKey, {
+                    items: nextData.items,
+                    total: nextData.total,
+                    timestamp: Date.now(),
+                  });
+                }
+              })
+              .catch(() => {});
+          }
+        }
       } else {
         if (!cached) setError(`Server error (${res.status})`);
       }

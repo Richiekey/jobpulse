@@ -97,10 +97,30 @@ function deduplicateAndInterleaveJobs<T extends { id?: string; title?: string; c
   return result;
 }
 
+// In-memory cache for API queries (30s TTL)
+const apiJobsMemoryCache = new Map<string, { data: any; timestamp: number }>();
+const API_CACHE_TTL = 30 * 1000;
+
+// Cached total counts by filter key (3-minute TTL)
+const totalCountCache = new Map<string, { total: number; timestamp: number }>();
+const TOTAL_COUNT_CACHE_TTL = 3 * 60 * 1000;
+
 async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = []) {
   const page = parseInt(sp.get('page') || '1', 10);
   const perPage = Math.min(parseInt(sp.get('per_page') || '12', 10), 50);
   const offset = (page - 1) * perPage;
+
+  // Cache key
+  const cacheKey = `${sp.toString()}__ex_${excludeIds.sort().join(',')}`;
+  const cached = apiJobsMemoryCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < API_CACHE_TTL)) {
+    return NextResponse.json(cached.data, {
+      headers: {
+        'Cache-Control': 'public, max-age=30, s-maxage=60, stale-while-revalidate=120',
+        'X-Cache': 'HIT',
+      },
+    });
+  }
 
   // Date Posted Filter (24h, 3d, 7d, 14d — default 14d)
   const datePosted = sp.get('date_posted');
@@ -180,8 +200,6 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
   }
 
   // ── Job Functions Multi-select ──
-  // Split function names into flexible keyword variants so "Full Stack Engineer"
-  // also matches "Fullstack Developer", "Full-Stack Dev", etc.
   const FUNCTION_KEYWORD_MAP: Record<string, string[]> = {
     'Full Stack Engineer': ['*full stack*', '*fullstack*', '*full-stack*'],
     'Backend Engineer': ['*backend*', '*back end*', '*back-end*', '*server side*'],
@@ -224,26 +242,22 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
 
   if (hasUserFunctions) {
     const fnList = functions!.split(',').map(f => f.trim()).filter(Boolean);
-    // Expand each function into its keyword variants
     const allPatterns: string[] = [];
     for (const fn of fnList) {
       const variants = FUNCTION_KEYWORD_MAP[fn];
       if (variants) {
         allPatterns.push(...variants);
       } else {
-        // Fallback: use the raw function name as a wildcard
         allPatterns.push(`*${fn}*`);
       }
     }
-    // Deduplicate
     const uniquePatterns = [...new Set(allPatterns)];
     params.title = `ilike(any).{${uniquePatterns.join(',')}}`;
   } else if (!hasUserSearch) {
-    // Default: only show jobs matching our supported job functions
     params.title = `ilike(any).{${RELEVANT_TITLE_PATTERNS.join(',')}}`;
   }
 
-  // Exact IDs filter (for Saved Jobs catalogue) — overrides exclusion
+  // Exact IDs filter (for Saved Jobs catalogue)
   const ids = sp.get('ids');
   if (ids) {
     const idList = ids.split(',').map(id => id.trim()).filter(Boolean);
@@ -251,7 +265,7 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
       params.id = `in.(${idList.join(',')})`;
       delete params.and;
       delete params.or;
-      delete params.title; // Don't filter saved jobs by title
+      delete params.title;
     }
   }
 
@@ -267,17 +281,14 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     params.source = `eq.${source}`;
   }
 
-  // Skills Filter — use array overlap + title fallback for unenriched jobs
+  // Skills Filter
   const skills = sp.get('skills');
   if (skills) {
     const skillList = skills.split(',').map(s => s.trim()).filter(Boolean);
     if (skillList.length > 0) {
-      // Match jobs where skills array overlaps OR title contains any skill keyword
       const titleFallbacks = skillList.map(s => `title.ilike.*${s}*`);
       const skillsOr = `(skills.ov.{${skillList.join(',')}},${titleFallbacks.join(',')})`;
-      // Merge into existing OR if present, otherwise set new
       if (params.or) {
-        // We need to AND this with the existing OR — use params.and instead
         if (params.and) {
           params.and = `(${params.and.slice(1, -1)},or${skillsOr})`;
         } else {
@@ -290,11 +301,19 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     }
   }
 
+  // Determine whether we need count=exact or can reuse cached total
+  const filterKey = `${sp.get('q') || ''}_${sp.get('country') || ''}_${sp.get('location') || ''}_${sp.get('functions') || ''}_${sp.get('date_posted') || ''}_${sp.get('remote_type') || ''}_${sp.get('source') || ''}_${sp.get('skills') || ''}_${excludeIds.length}`;
+  const cachedTotalEntry = totalCountCache.get(filterKey);
+  const isCountFresh = cachedTotalEntry && (Date.now() - cachedTotalEntry.timestamp < TOTAL_COUNT_CACHE_TTL);
+
+  // If we already know the total for this filter query, don't force expensive count=exact
+  const preferHeader = isCountFresh ? undefined : 'count=exact';
+
   try {
-    const res = await supabaseFetch('jobs', params, { Prefer: 'count=exact' });
+    const res = await supabaseFetch('jobs', params, preferHeader ? { Prefer: preferHeader } : {});
 
     let results: any[] = [];
-    let total = 0;
+    let total = isCountFresh ? cachedTotalEntry.total : 0;
 
     if (res.ok) {
       results = await res.json();
@@ -302,10 +321,11 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
       if (contentRange.includes('/')) {
         try {
           total = parseInt(contentRange.split('/')[1], 10);
+          totalCountCache.set(filterKey, { total, timestamp: Date.now() });
         } catch {
           total = results.length;
         }
-      } else {
+      } else if (!isCountFresh) {
         total = results.length;
       }
     } else {
@@ -314,12 +334,22 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
 
     const diverseResults = deduplicateAndInterleaveJobs(results);
 
-    return NextResponse.json({
+    const payload = {
       items: diverseResults,
       total,
       page,
       per_page: perPage,
       total_pages: Math.ceil(total / perPage),
+    };
+
+    // Store in server SWR cache
+    apiJobsMemoryCache.set(cacheKey, { data: payload, timestamp: Date.now() });
+
+    return NextResponse.json(payload, {
+      headers: {
+        'Cache-Control': 'public, max-age=30, s-maxage=60, stale-while-revalidate=120',
+        'X-Cache': 'MISS',
+      },
     });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
