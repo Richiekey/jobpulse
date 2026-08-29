@@ -1,13 +1,13 @@
 // Supabase REST API helper for server-side API routes
-// Uses the service role key for full database access (never exposed to client)
+// Uses the service role key for full database access when available, or anon key fallback
 
 function getServiceConfig() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
-
-  if (!url || !key) {
-    console.error('[supabaseFetch Config Error] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY on server runtime.');
-  }
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wvyrivmvpcrhwinzmcyy.supabase.co';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY 
+    || process.env.SUPABASE_SERVICE_KEY 
+    || process.env.SUPABASE_KEY 
+    || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
+    || 'sb_publishable_GYw1ETm1lMclmijF5_4_Zw_tSbDvcI8';
 
   return { url, key };
 }
@@ -23,9 +23,6 @@ export async function supabaseFetch(
   } = {}
 ) {
   const { url, key } = getServiceConfig();
-  if (!url || !key) {
-    throw new Error('Supabase server configuration is missing required SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL');
-  }
 
   const restUrl = `${url}/rest/v1`;
   const target = new URL(`${restUrl}/${table}`);
