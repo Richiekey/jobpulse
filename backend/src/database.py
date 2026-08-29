@@ -152,8 +152,8 @@ class Database:
             logger.error("insert_job_failed", status=resp.status_code, body=resp.text[:200])
             return "inserted"
 
-    async def bulk_upsert_jobs(self, jobs: List[NormalizedJob], batch_size: int = 100) -> Dict[str, int]:
-        """Bulk upserts jobs into Supabase in batches with resolution=merge-duplicates."""
+    async def bulk_upsert_jobs(self, jobs: List[NormalizedJob], batch_size: int = 25) -> Dict[str, int]:
+        """Bulk upserts jobs into Supabase in safe 25-item batches with resolution=merge-duplicates."""
         if not jobs or not self.connected:
             return {"inserted": 0, "failed": 0}
 
@@ -173,20 +173,26 @@ class Database:
             batch = jobs[i:i + batch_size]
             payload = [self._serialize_job(job) for job in batch]
 
-            resp = await self.client.post(
-                f"{self.rest_url}/jobs?on_conflict=source,source_job_id",
-                headers={"Prefer": "resolution=merge-duplicates"},
-                json=payload,
-            )
-            if resp.status_code < 300:
-                stats["inserted"] += len(batch)
-            else:
-                logger.error("bulk_upsert_failed", status=resp.status_code, body=resp.text[:200])
-                # Fallback to individual
-                for j in batch:
-                    r = await self.upsert_job(j)
-                    if r != "skipped":
-                        stats["inserted"] += 1
+            try:
+                resp = await self.client.post(
+                    f"{self.rest_url}/jobs?on_conflict=source,source_job_id",
+                    headers={"Prefer": "resolution=merge-duplicates"},
+                    json=payload,
+                )
+                if resp.status_code < 300:
+                    stats["inserted"] += len(batch)
+                else:
+                    logger.warning("bulk_batch_retry_individual", status=resp.status_code, batch_len=len(batch))
+                    for j in batch:
+                        try:
+                            r = await self.upsert_job(j)
+                            if r != "skipped":
+                                stats["inserted"] += 1
+                        except Exception:
+                            stats["failed"] += 1
+            except Exception as e:
+                logger.error("bulk_batch_exception", error=str(e))
+                stats["failed"] += len(batch)
 
         return stats
 
@@ -310,34 +316,42 @@ class Database:
         return rows[0] if rows else None
 
     async def mark_stale_jobs(self, source: str, company_identifier: str, active_source_job_ids: List[str]):
-        """Mark jobs not in active list as STALE using direct REST API."""
+        """Mark jobs not in active list as STALE using safe in-memory set difference."""
         if not self.connected or not active_source_job_ids:
             return
         try:
-            # Get all active jobs for this source + company that aren't in the active list
+            # Query all active jobs for this company
             params = {
                 "select": "id,source_job_id",
                 "source": f"eq.{source}",
                 "source_company_id": f"eq.{company_identifier}",
                 "status": "eq.ACTIVE",
-                "source_job_id": f"not.in.({','.join(active_source_job_ids[:500])})",
                 "limit": "500",
             }
             resp = await self.client.get(f"{self.rest_url}/jobs", params=params)
             if resp.status_code >= 300:
                 logger.error("mark_stale_query_failed", status=resp.status_code, body=resp.text[:200])
                 return
-            stale_jobs = resp.json()
-            if not stale_jobs:
+            db_jobs = resp.json()
+            if not db_jobs:
                 return
-            # Patch each stale job
-            stale_ids = [j["id"] for j in stale_jobs]
-            for job_id in stale_ids[:100]:  # Limit to avoid long operations
-                await self.client.patch(
-                    f"{self.rest_url}/jobs",
-                    params={"id": f"eq.{job_id}"},
-                    json={"status": "STALE"},
-                )
+
+            active_set = set(str(sid) for sid in active_source_job_ids)
+            stale_ids = [j["id"] for j in db_jobs if str(j.get("source_job_id", "")) not in active_set]
+
+            if not stale_ids:
+                return
+
+            # Patch stale jobs in small batches
+            for job_id in stale_ids[:100]:
+                try:
+                    await self.client.patch(
+                        f"{self.rest_url}/jobs",
+                        params={"id": f"eq.{job_id}"},
+                        json={"status": "STALE"},
+                    )
+                except Exception:
+                    pass
             logger.info("marked_jobs_stale", company=company_identifier, count=len(stale_ids))
         except Exception as e:
             logger.error("mark_stale_jobs_failed", error=str(e))

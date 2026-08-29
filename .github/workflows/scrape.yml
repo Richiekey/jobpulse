@@ -27,10 +27,17 @@ jobs:
 
       - name: Run Scraper Engine
         working-directory: backend
-        run: python -m src.core.scheduler
+        run: |
+          python -m src.core.scheduler
+          if [ -n "${{ secrets.JOBRIGHT_EMAIL }}" ]; then
+            echo "Running Jobright sync..."
+            python -m src.scripts.seed_jobright || true
+          fi
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY || secrets.SUPABASE_KEY }}
+          JOBRIGHT_EMAIL: ${{ secrets.JOBRIGHT_EMAIL }}
+          JOBRIGHT_PASSWORD: ${{ secrets.JOBRIGHT_PASSWORD }}
 
       - name: Report failure
         if: failure()

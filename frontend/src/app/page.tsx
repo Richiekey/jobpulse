@@ -158,68 +158,61 @@ export default function JobsDashboard() {
   useEffect(() => { showAppliedRef.current = showApplied; }, [showApplied]);
   useEffect(() => { showHiddenRef.current = showHidden; }, [showHidden]);
 
-  // ── Raw Job Pool for Dynamic 12-Card Page Backfilling ─────────────────
-  const [rawJobPool, setRawJobPool] = useState<Job[]>([]);
-  const rawPageRef = useRef<number>(1);
-  const hasMoreRawRef = useRef<boolean>(true);
-  const isFetchingMoreRef = useRef<boolean>(false);
-  const rawJobPoolRef = useRef<Job[]>([]);
-  useEffect(() => { rawJobPoolRef.current = rawJobPool; }, [rawJobPool]);
-
-  // Dynamic filtered pool (all unapplied/unhidden jobs currently buffered)
-  const filteredPool = useMemo(() => {
-    return rawJobPool.filter((job) => {
-      if (!showApplied && appliedSet.has(job.id)) return false;
-      if (!showHidden && hiddenSet.has(job.id)) return false;
-      return true;
-    });
-  }, [rawJobPool, showApplied, showHidden, appliedSet, hiddenSet]);
+  // ── Page-Level Jobs State & Local Reserve Buffer ─────────────────────
+  const [pageJobs, setPageJobs] = useState<Job[]>([]);
+  const [reserveJobs, setReserveJobs] = useState<Job[]>([]);
+  const isFetchingReserveRef = useRef<boolean>(false);
 
   const effectiveTotal = useMemo(() => {
     if (total === 0) return 0;
     let excluded = 0;
     if (!showApplied) excluded += appliedSet.size;
     if (!showHidden) excluded += hiddenSet.size;
-    return Math.max(filteredPool.length, total - excluded);
-  }, [total, showApplied, showHidden, appliedSet.size, hiddenSet.size, filteredPool.length]);
+    return Math.max(0, total - excluded);
+  }, [total, showApplied, showHidden, appliedSet.size, hiddenSet.size]);
 
   const totalPages = Math.max(1, Math.ceil(effectiveTotal / DEFAULT_PAGE_SIZE));
 
-  // Current page's exact 12-card slice
-  const startIndex = (page - 1) * DEFAULT_PAGE_SIZE;
-  const endIndex = startIndex + DEFAULT_PAGE_SIZE;
-  const displayedJobs = filteredPool.slice(startIndex, endIndex);
+  // Current page's active 12 cards (unapplied/unhidden, supplemented by reserve)
+  const displayedJobs = useMemo(() => {
+    const valid = pageJobs.filter((job) => {
+      if (!showApplied && appliedSet.has(job.id)) return false;
+      if (!showHidden && hiddenSet.has(job.id)) return false;
+      return true;
+    });
 
-  // 4. Primary Job Fetch Function with Auto-Backfilling
-  const fetchJobs = useCallback(async (targetPage: number, reset: boolean = false) => {
+    if (valid.length >= DEFAULT_PAGE_SIZE) {
+      return valid.slice(0, DEFAULT_PAGE_SIZE);
+    }
+
+    // Backfill from reserveJobs to ensure exactly 12 cards
+    const needed = DEFAULT_PAGE_SIZE - valid.length;
+    const existingIds = new Set(valid.map((j) => j.id));
+    const validReserve = reserveJobs.filter((job) => {
+      if (existingIds.has(job.id)) return false;
+      if (!showApplied && appliedSet.has(job.id)) return false;
+      if (!showHidden && hiddenSet.has(job.id)) return false;
+      return true;
+    });
+
+    return [...valid, ...validReserve.slice(0, needed)];
+  }, [pageJobs, reserveJobs, showApplied, showHidden, appliedSet, hiddenSet]);
+
+  // 4. Primary Job Fetch Function (Direct Page Query + Reserve Buffer)
+  const fetchJobs = useCallback(async (targetPage: number) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    let currentPool = reset ? [] : rawJobPoolRef.current;
-    let currentRawPage = reset ? 1 : rawPageRef.current;
-    let canFetch = reset ? true : hasMoreRawRef.current;
-
-    const countFiltered = (pool: Job[]) => {
-      return pool.filter((job) => {
-        if (!showAppliedRef.current && appliedSetRef.current.has(job.id)) return false;
-        if (!showHiddenRef.current && hiddenSetRef.current.has(job.id)) return false;
-        return true;
-      }).length;
-    };
-
-    const targetNeeded = targetPage * DEFAULT_PAGE_SIZE;
-    const hasEnough = countFiltered(currentPool) >= targetNeeded;
-
-    if (reset || !hasEnough) {
-      setLoading(true);
-      setError(null);
-    }
+    setLoading(true);
+    setError(null);
 
     try {
       const params = new URLSearchParams();
+      params.set("page", String(targetPage));
+      params.set("per_page", "16"); // Fetch 12 active + 4 reserve items
       if (query) params.set("q", query);
       if (locationState.country) params.set("country", locationState.country);
       if (locationState.cityOrState) params.set("location", locationState.cityOrState);
@@ -229,77 +222,26 @@ export default function JobsDashboard() {
       if (source) params.set("source", source);
       if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
 
-      while (countFiltered(currentPool) < targetNeeded && canFetch) {
-        params.set("page", String(currentRawPage));
-        params.set("per_page", "48");
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
 
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
-        const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!res.ok) {
-          if (currentPool.length === 0) setError(`Server error (${res.status})`);
-          break;
-        }
-
+      if (res.ok) {
         const data = await res.json();
         const items: Job[] = data.items || [];
         const tot = data.total || 0;
         if (tot > 0) setTotal(tot);
 
-        if (items.length === 0) {
-          canFetch = false;
-          hasMoreRawRef.current = false;
-          break;
-        }
-
-        const existingIds = new Set(currentPool.map((j) => j.id));
-        const uniqueItems = items.filter((j) => !existingIds.has(j.id));
-        currentPool = [...currentPool, ...uniqueItems];
-        currentRawPage += 1;
-        rawPageRef.current = currentRawPage;
-        rawJobPoolRef.current = currentPool;
-        setRawJobPool(currentPool);
-
-        if (items.length < 48 || currentPool.length >= tot) {
-          canFetch = false;
-          hasMoreRawRef.current = false;
-          break;
-        }
-      }
-
-      // Background buffer replenishment: keep reserve jobs ready for next page & instant replacement
-      const reserveCount = countFiltered(currentPool) - targetNeeded;
-      if (reserveCount < DEFAULT_PAGE_SIZE && canFetch && !isFetchingMoreRef.current) {
-        isFetchingMoreRef.current = true;
-        const nextRawP = currentRawPage;
-        const bgParams = new URLSearchParams(params);
-        bgParams.set("page", String(nextRawP));
-        bgParams.set("per_page", "48");
-
-        fetch(`${API_BASE}/jobs?${bgParams.toString()}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((nextData) => {
-            if (nextData?.items?.length > 0) {
-              const prev = rawJobPoolRef.current;
-              const prevIds = new Set(prev.map((j) => j.id));
-              const fresh = nextData.items.filter((j: Job) => !prevIds.has(j.id));
-              if (fresh.length > 0) {
-                const combined = [...prev, ...fresh];
-                rawJobPoolRef.current = combined;
-                rawPageRef.current = nextRawP + 1;
-                setRawJobPool(combined);
-              }
-            }
-          })
-          .catch(() => {})
-          .finally(() => {
-            isFetchingMoreRef.current = false;
-          });
+        const primary = items.slice(0, DEFAULT_PAGE_SIZE);
+        const reserve = items.slice(DEFAULT_PAGE_SIZE);
+        setPageJobs(primary);
+        setReserveJobs(reserve);
+      } else {
+        setError(`Server error (${res.status})`);
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name === "AbortError") return;
-      if (currentPool.length === 0) setError("Failed to connect to API");
+      setError("Failed to connect to API");
     } finally {
       setLoading(false);
     }
@@ -308,10 +250,7 @@ export default function JobsDashboard() {
   // Reset to page 1 on filter change
   useEffect(() => {
     setPage(1);
-    rawPageRef.current = 1;
-    hasMoreRawRef.current = true;
-    setRawJobPool([]);
-    fetchJobs(1, true);
+    fetchJobs(1);
   }, [fetchJobs]);
 
   // Re-fetch on user auth change
@@ -319,17 +258,14 @@ export default function JobsDashboard() {
     if (user) {
       jobsMemoryCache.clear();
       setPage(1);
-      rawPageRef.current = 1;
-      hasMoreRawRef.current = true;
-      setRawJobPool([]);
-      fetchJobs(1, true);
+      fetchJobs(1);
     }
   }, [user, fetchJobs]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === page) return;
     setPage(newPage);
-    fetchJobs(newPage, false);
+    fetchJobs(newPage);
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 380, behavior: "smooth" });
     }
@@ -357,7 +293,7 @@ export default function JobsDashboard() {
     }
 
     try {
-      const targetJob = rawJobPool.find((j) => j.id === id) || (fullJobData?.id === id ? fullJobData : selectedJob);
+      const targetJob = pageJobs.find((j) => j.id === id) || reserveJobs.find((j) => j.id === id) || (fullJobData?.id === id ? fullJobData : selectedJob);
       if (targetJob && syncAppliedJobToSheet) {
         const result = await syncAppliedJobToSheet({
           id: targetJob.id,
