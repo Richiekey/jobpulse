@@ -174,7 +174,7 @@ export default function JobsDashboard() {
     // Immutable sort for cache key computation (prevents mutating state in place)
     const sortedFunctions = [...selectedFunctions].sort().join(",");
     const sortedSkills = [...selectedSkills].sort().join(",");
-    const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${sortedFunctions}_${datePosted}_${remoteType}_${source}_${sortedSkills}_ex${excludeIds.length}`;
+    const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${sortedFunctions}_${datePosted}_${remoteType}_${source}_${sortedSkills}`;
     
     const cached = jobsMemoryCache.get(cacheKey);
     const isCacheValid = cached && cached.items?.length > 0 && (Date.now() - cached.timestamp < 60000);
@@ -205,14 +205,7 @@ export default function JobsDashboard() {
       if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
 
       const timeoutId = setTimeout(() => controller.abort(), 12000);
-      const fetchOptions: RequestInit = { signal: controller.signal };
-      if (excludeIds.length > 0) {
-        fetchOptions.method = 'POST';
-        fetchOptions.headers = { 'Content-Type': 'application/json' };
-        fetchOptions.body = JSON.stringify({ excludeIds });
-      }
-
-      const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, fetchOptions);
+      const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (res.ok) {
@@ -236,19 +229,15 @@ export default function JobsDashboard() {
 
         const effectiveTotalPages = tot > 0 ? Math.ceil(tot / DEFAULT_PAGE_SIZE) : totalPages;
 
-        // Safe Background Prefetch for Page + 1 (Clean Request without Shared Signal)
+        // Safe Background Prefetch for Page + 1
         if (p < effectiveTotalPages) {
           const nextP = p + 1;
           const nextParams = new URLSearchParams(params);
           nextParams.set("page", String(nextP));
-          const nextCacheKey = `${nextP}_${query}_${locationState.country}_${locationState.cityOrState}_${sortedFunctions}_${datePosted}_${remoteType}_${source}_${sortedSkills}_ex${excludeIds.length}`;
+          const nextCacheKey = `${nextP}_${query}_${locationState.country}_${locationState.cityOrState}_${sortedFunctions}_${datePosted}_${remoteType}_${source}_${sortedSkills}`;
 
           if (!jobsMemoryCache.has(nextCacheKey)) {
-            const prefetchOptions: RequestInit = excludeIds.length > 0
-              ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ excludeIds }) }
-              : { method: 'GET' };
-
-            fetch(`${API_BASE}/jobs?${nextParams.toString()}`, prefetchOptions)
+            fetch(`${API_BASE}/jobs?${nextParams.toString()}`)
               .then((r) => (r.ok ? r.json() : null))
               .then((nextData) => {
                 if (nextData?.items?.length > 0) {

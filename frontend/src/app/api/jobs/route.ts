@@ -91,11 +91,6 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     offset: String(offset),
   };
 
-  // Exclude hidden/applied job IDs so pagination counts are accurate
-  if (excludeIds.length > 0) {
-    params.id = `not.in.(${excludeIds.join(',')})`;
-  }
-
   // Freshness condition based on chosen date window
   const freshnessCond = `or(posted_at.gte.${dateCutoff},and(posted_at.is.null,created_at.gte.${dateCutoff}))`;
 
