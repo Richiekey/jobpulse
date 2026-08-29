@@ -59,7 +59,7 @@ const TOTAL_COUNT_CACHE_TTL = 3 * 60 * 1000;
 
 async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = []) {
   const page = parseInt(sp.get('page') || '1', 10);
-  const perPage = Math.min(parseInt(sp.get('per_page') || '12', 10), 50);
+  const perPage = Math.min(parseInt(sp.get('per_page') || '12', 10), 100);
   const offset = (page - 1) * perPage;
 
   // Cache key

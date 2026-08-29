@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import LocationFilterPopover from "@/components/LocationFilterPopover";
@@ -73,7 +73,6 @@ export default function JobsDashboard() {
   // Pagination State
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
 
   // Abort Controller Reference
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -159,42 +158,68 @@ export default function JobsDashboard() {
   useEffect(() => { showAppliedRef.current = showApplied; }, [showApplied]);
   useEffect(() => { showHiddenRef.current = showHidden; }, [showHidden]);
 
-  // 4. Primary Job Fetch Function
-  const fetchJobs = useCallback(async (p: number) => {
+  // ── Raw Job Pool for Dynamic 12-Card Page Backfilling ─────────────────
+  const [rawJobPool, setRawJobPool] = useState<Job[]>([]);
+  const rawPageRef = useRef<number>(1);
+  const hasMoreRawRef = useRef<boolean>(true);
+  const isFetchingMoreRef = useRef<boolean>(false);
+  const rawJobPoolRef = useRef<Job[]>([]);
+  useEffect(() => { rawJobPoolRef.current = rawJobPool; }, [rawJobPool]);
+
+  // Dynamic filtered pool (all unapplied/unhidden jobs currently buffered)
+  const filteredPool = useMemo(() => {
+    return rawJobPool.filter((job) => {
+      if (!showApplied && appliedSet.has(job.id)) return false;
+      if (!showHidden && hiddenSet.has(job.id)) return false;
+      return true;
+    });
+  }, [rawJobPool, showApplied, showHidden, appliedSet, hiddenSet]);
+
+  const effectiveTotal = useMemo(() => {
+    if (total === 0) return 0;
+    let excluded = 0;
+    if (!showApplied) excluded += appliedSet.size;
+    if (!showHidden) excluded += hiddenSet.size;
+    return Math.max(filteredPool.length, total - excluded);
+  }, [total, showApplied, showHidden, appliedSet.size, hiddenSet.size, filteredPool.length]);
+
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / DEFAULT_PAGE_SIZE));
+
+  // Current page's exact 12-card slice
+  const startIndex = (page - 1) * DEFAULT_PAGE_SIZE;
+  const endIndex = startIndex + DEFAULT_PAGE_SIZE;
+  const displayedJobs = filteredPool.slice(startIndex, endIndex);
+
+  // 4. Primary Job Fetch Function with Auto-Backfilling
+  const fetchJobs = useCallback(async (targetPage: number, reset: boolean = false) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    const excludeIds: string[] = [];
-    if (!showAppliedRef.current) appliedSetRef.current.forEach((id) => excludeIds.push(id));
-    if (!showHiddenRef.current) hiddenSetRef.current.forEach((id) => excludeIds.push(id));
+    let currentPool = reset ? [] : rawJobPoolRef.current;
+    let currentRawPage = reset ? 1 : rawPageRef.current;
+    let canFetch = reset ? true : hasMoreRawRef.current;
 
-    // Immutable sort for cache key computation (prevents mutating state in place)
-    const sortedFunctions = [...selectedFunctions].sort().join(",");
-    const sortedSkills = [...selectedSkills].sort().join(",");
-    const cacheKey = `${p}_${query}_${locationState.country}_${locationState.cityOrState}_${sortedFunctions}_${datePosted}_${remoteType}_${source}_${sortedSkills}`;
-    
-    const cached = jobsMemoryCache.get(cacheKey);
-    const isCacheValid = cached && cached.items?.length > 0 && (Date.now() - cached.timestamp < 60000);
+    const countFiltered = (pool: Job[]) => {
+      return pool.filter((job) => {
+        if (!showAppliedRef.current && appliedSetRef.current.has(job.id)) return false;
+        if (!showHiddenRef.current && hiddenSetRef.current.has(job.id)) return false;
+        return true;
+      }).length;
+    };
 
-    if (cached && cached.items && cached.items.length > 0) {
-      setJobs(cached.items);
-      setTotal(cached.total);
-      setTotalPages(Math.ceil((cached.total || 0) / DEFAULT_PAGE_SIZE));
-      setLoading(false);
-      setError(null);
-      if (isCacheValid) return;
-    } else {
+    const targetNeeded = targetPage * DEFAULT_PAGE_SIZE;
+    const hasEnough = countFiltered(currentPool) >= targetNeeded;
+
+    if (reset || !hasEnough) {
       setLoading(true);
       setError(null);
     }
 
     try {
       const params = new URLSearchParams();
-      params.set("page", String(p));
-      params.set("per_page", String(DEFAULT_PAGE_SIZE));
       if (query) params.set("q", query);
       if (locationState.country) params.set("country", locationState.country);
       if (locationState.cityOrState) params.set("location", locationState.cityOrState);
@@ -204,59 +229,77 @@ export default function JobsDashboard() {
       if (source) params.set("source", source);
       if (selectedSkills.size > 0) params.set("skills", [...selectedSkills].join(","));
 
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-      const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
+      while (countFiltered(currentPool) < targetNeeded && canFetch) {
+        params.set("page", String(currentRawPage));
+        params.set("per_page", "48");
 
-      if (res.ok) {
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          if (currentPool.length === 0) setError(`Server error (${res.status})`);
+          break;
+        }
+
         const data = await res.json();
         const items: Job[] = data.items || [];
         const tot = data.total || 0;
+        if (tot > 0) setTotal(tot);
 
-        if (items.length > 0) {
-          jobsMemoryCache.set(cacheKey, { items, total: tot, timestamp: Date.now() });
+        if (items.length === 0) {
+          canFetch = false;
+          hasMoreRawRef.current = false;
+          break;
         }
 
-        setJobs(items);
-        if (tot > 0) {
-          setTotal(tot);
-          const calcTotalPages = Math.ceil(tot / DEFAULT_PAGE_SIZE);
-          setTotalPages(calcTotalPages);
-        } else if (items.length > 0) {
-          setTotal((prev) => (prev > 0 ? prev : (p - 1) * DEFAULT_PAGE_SIZE + items.length));
-          setTotalPages((prev) => (prev > 0 ? prev : p));
+        const existingIds = new Set(currentPool.map((j) => j.id));
+        const uniqueItems = items.filter((j) => !existingIds.has(j.id));
+        currentPool = [...currentPool, ...uniqueItems];
+        currentRawPage += 1;
+        rawPageRef.current = currentRawPage;
+        rawJobPoolRef.current = currentPool;
+        setRawJobPool(currentPool);
+
+        if (items.length < 48 || currentPool.length >= tot) {
+          canFetch = false;
+          hasMoreRawRef.current = false;
+          break;
         }
+      }
 
-        const effectiveTotalPages = tot > 0 ? Math.ceil(tot / DEFAULT_PAGE_SIZE) : totalPages;
+      // Background buffer replenishment: keep reserve jobs ready for next page & instant replacement
+      const reserveCount = countFiltered(currentPool) - targetNeeded;
+      if (reserveCount < DEFAULT_PAGE_SIZE && canFetch && !isFetchingMoreRef.current) {
+        isFetchingMoreRef.current = true;
+        const nextRawP = currentRawPage;
+        const bgParams = new URLSearchParams(params);
+        bgParams.set("page", String(nextRawP));
+        bgParams.set("per_page", "48");
 
-        // Safe Background Prefetch for Page + 1
-        if (p < effectiveTotalPages) {
-          const nextP = p + 1;
-          const nextParams = new URLSearchParams(params);
-          nextParams.set("page", String(nextP));
-          const nextCacheKey = `${nextP}_${query}_${locationState.country}_${locationState.cityOrState}_${sortedFunctions}_${datePosted}_${remoteType}_${source}_${sortedSkills}`;
-
-          if (!jobsMemoryCache.has(nextCacheKey)) {
-            fetch(`${API_BASE}/jobs?${nextParams.toString()}`)
-              .then((r) => (r.ok ? r.json() : null))
-              .then((nextData) => {
-                if (nextData?.items?.length > 0) {
-                  jobsMemoryCache.set(nextCacheKey, {
-                    items: nextData.items,
-                    total: nextData.total,
-                    timestamp: Date.now(),
-                  });
-                }
-              })
-              .catch(() => {});
-          }
-        }
-      } else {
-        if (!cached) setError(`Server error (${res.status})`);
+        fetch(`${API_BASE}/jobs?${bgParams.toString()}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((nextData) => {
+            if (nextData?.items?.length > 0) {
+              const prev = rawJobPoolRef.current;
+              const prevIds = new Set(prev.map((j) => j.id));
+              const fresh = nextData.items.filter((j: Job) => !prevIds.has(j.id));
+              if (fresh.length > 0) {
+                const combined = [...prev, ...fresh];
+                rawJobPoolRef.current = combined;
+                rawPageRef.current = nextRawP + 1;
+                setRawJobPool(combined);
+              }
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            isFetchingMoreRef.current = false;
+          });
       }
     } catch (e: unknown) {
-      if (e instanceof Error && e.name === 'AbortError') return;
-      if (!cached) setError('Failed to connect to API');
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (currentPool.length === 0) setError("Failed to connect to API");
     } finally {
       setLoading(false);
     }
@@ -265,21 +308,28 @@ export default function JobsDashboard() {
   // Reset to page 1 on filter change
   useEffect(() => {
     setPage(1);
-    fetchJobs(1);
+    rawPageRef.current = 1;
+    hasMoreRawRef.current = true;
+    setRawJobPool([]);
+    fetchJobs(1, true);
   }, [fetchJobs]);
 
   // Re-fetch on user auth change
   useEffect(() => {
     if (user) {
       jobsMemoryCache.clear();
-      fetchJobs(1);
+      setPage(1);
+      rawPageRef.current = 1;
+      hasMoreRawRef.current = true;
+      setRawJobPool([]);
+      fetchJobs(1, true);
     }
   }, [user, fetchJobs]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === page) return;
     setPage(newPage);
-    fetchJobs(newPage);
+    fetchJobs(newPage, false);
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 380, behavior: "smooth" });
     }
@@ -307,7 +357,7 @@ export default function JobsDashboard() {
     }
 
     try {
-      const targetJob = jobs.find((j) => j.id === id) || (fullJobData?.id === id ? fullJobData : selectedJob);
+      const targetJob = rawJobPool.find((j) => j.id === id) || (fullJobData?.id === id ? fullJobData : selectedJob);
       if (targetJob && syncAppliedJobToSheet) {
         const result = await syncAppliedJobToSheet({
           id: targetJob.id,
@@ -440,15 +490,8 @@ export default function JobsDashboard() {
     setBulkMode(false);
   };
 
-  // Filter out applied/hidden jobs client-side if visibility toggled
-  const displayedJobs = jobs.filter((job) => {
-    if (!showApplied && appliedSet.has(job.id)) return false;
-    if (!showHidden && hiddenSet.has(job.id)) return false;
-    return true;
-  });
-
-  const appliedCount = jobs.filter((j) => appliedSet.has(j.id)).length;
-  const hiddenCount = jobs.filter((j) => hiddenSet.has(j.id)).length;
+  const appliedCount = appliedSet.size;
+  const hiddenCount = hiddenSet.size;
 
   return (
     <div>
@@ -461,7 +504,7 @@ export default function JobsDashboard() {
             </h1>
             <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>
               <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "var(--text-secondary)", fontFamily: "'JetBrains Mono', monospace" }}>
-                {total.toLocaleString()}
+                {effectiveTotal.toLocaleString()}
               </span>{" "}
               curated positions across ATS platforms
             </p>
@@ -864,11 +907,11 @@ export default function JobsDashboard() {
       )}
 
       {/* ── Persistent Pagination Bar (Stays visible across page transitions) ── */}
-      {(totalPages > 1 || total > DEFAULT_PAGE_SIZE || page > 1) && !error && (
+      {(totalPages > 1 || effectiveTotal > DEFAULT_PAGE_SIZE || page > 1) && !error && (
         <JobPagination
           page={page}
           totalPages={totalPages}
-          totalJobs={total}
+          totalJobs={effectiveTotal}
           loading={loading}
           onPageChange={handlePageChange}
         />
