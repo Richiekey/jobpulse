@@ -225,12 +225,19 @@ export default function JobsDashboard() {
         }
 
         setJobs(items);
-        setTotal(tot);
-        const calcTotalPages = Math.ceil(tot / DEFAULT_PAGE_SIZE);
-        setTotalPages(calcTotalPages);
+        if (tot > 0) {
+          setTotal(tot);
+          const calcTotalPages = Math.ceil(tot / DEFAULT_PAGE_SIZE);
+          setTotalPages(calcTotalPages);
+        } else if (items.length > 0) {
+          setTotal((prev) => (prev > 0 ? prev : (p - 1) * DEFAULT_PAGE_SIZE + items.length));
+          setTotalPages((prev) => (prev > 0 ? prev : p));
+        }
+
+        const effectiveTotalPages = tot > 0 ? Math.ceil(tot / DEFAULT_PAGE_SIZE) : totalPages;
 
         // Safe Background Prefetch for Page + 1 (Clean Request without Shared Signal)
-        if (p < calcTotalPages) {
+        if (p < effectiveTotalPages) {
           const nextP = p + 1;
           const nextParams = new URLSearchParams(params);
           nextParams.set("page", String(nextP));
@@ -864,14 +871,18 @@ export default function JobsDashboard() {
               onCancel={() => { setBulkMode(false); setBulkSelectedIds(new Set()); }}
             />
           )}
-
-          <JobPagination
-            page={page}
-            totalPages={totalPages}
-            totalJobs={total}
-            onPageChange={handlePageChange}
-          />
         </>
+      )}
+
+      {/* ── Persistent Pagination Bar (Stays visible across page transitions) ── */}
+      {(totalPages > 1 || total > DEFAULT_PAGE_SIZE || page > 1) && !error && (
+        <JobPagination
+          page={page}
+          totalPages={totalPages}
+          totalJobs={total}
+          loading={loading}
+          onPageChange={handlePageChange}
+        />
       )}
 
       {/* ── Job Modal ──────────────────── */}

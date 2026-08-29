@@ -224,20 +224,26 @@ async function handleJobsRequest(sp: URLSearchParams, excludeIds: string[] = [])
     const res = await supabaseFetch('jobs', params, preferHeader ? { Prefer: preferHeader } : {});
 
     let results: any[] = [];
-    let total = isCountFresh ? cachedTotalEntry.total : 0;
+    let total = isCountFresh ? (cachedTotalEntry?.total || 0) : 0;
 
     if (res.ok) {
       results = await res.json();
       const contentRange = res.headers.get('content-range') || '';
       if (contentRange.includes('/')) {
-        try {
-          total = parseInt(contentRange.split('/')[1], 10);
+        const rawTotal = contentRange.split('/')[1];
+        const parsed = parseInt(rawTotal, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          total = parsed;
           totalCountCache.set(filterKey, { total, timestamp: Date.now() });
-        } catch {
-          total = results.length;
+        } else if (cachedTotalEntry?.total) {
+          total = cachedTotalEntry.total;
+        } else {
+          total = Math.max(results.length, (page - 1) * perPage + results.length);
         }
-      } else if (!isCountFresh) {
-        total = results.length;
+      } else if (cachedTotalEntry?.total) {
+        total = cachedTotalEntry.total;
+      } else if (!total) {
+        total = Math.max(results.length, (page - 1) * perPage + results.length);
       }
     } else {
       console.warn("Supabase query note:", res.status);
