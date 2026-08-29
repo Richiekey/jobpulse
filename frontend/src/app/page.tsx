@@ -440,9 +440,14 @@ export default function JobsDashboard() {
             </h1>
             <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>
               <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "var(--text-secondary)", fontFamily: "'JetBrains Mono', monospace" }}>
-                {effectiveTotal.toLocaleString()}
+                {(total > 0 ? total : Object.values(sourceCounts).reduce((a, b) => a + b, 0)).toLocaleString()}
               </span>{" "}
               curated positions across ATS platforms
+              {effectiveTotal !== total && total > 0 && (
+                <span style={{ color: "var(--text-muted)", fontSize: 13, marginLeft: 8 }}>
+                  ({effectiveTotal.toLocaleString()} unapplied)
+                </span>
+              )}
             </p>
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
