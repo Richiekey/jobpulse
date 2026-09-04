@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import LocationFilterPopover from "@/components/LocationFilterPopover";
 import JobFunctionFilterPopover from "@/components/JobFunctionFilterPopover";
@@ -50,7 +51,7 @@ function saveStoredSet(key: string, set: Set<string>) {
 // ── Global In-Memory Cache (60s SWR for instant 0ms transitions) ──
 const jobsMemoryCache = new Map<string, { items: Job[]; total: number; timestamp: number }>();
 
-export default function JobsDashboard() {
+function JobsDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,12 +71,22 @@ export default function JobsDashboard() {
   const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
 
-  // Pagination State
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  // ── URL-Persisted Pagination State ─────────────────────────────
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Abort Controller Reference
+  const pageParam = searchParams.get("page");
+  const currentPage = useMemo(() => {
+    const parsed = parseInt(pageParam || "1", 10);
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed;
+  }, [pageParam]);
+
+  const [total, setTotal] = useState(0);
+
+  // Abort Controller Reference & Request Sequencing
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastRequestIdRef = useRef<number>(0);
 
   // Tracking Sets (Applied, Hidden, Saved)
   const [appliedSet, setAppliedSet] = useState<Set<string>>(() => getStoredSet("jp_applied"));
@@ -137,7 +148,6 @@ export default function JobsDashboard() {
       setAppliedSet(getStoredSet("jp_applied"));
       setHiddenSet(getStoredSet("jp_hidden"));
       setSavedSet(getStoredSet("jp_saved"));
-      jobsMemoryCache.clear();
     };
 
     window.addEventListener("focus", syncTrackingSets);
@@ -205,6 +215,7 @@ export default function JobsDashboard() {
     }
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    const requestId = ++lastRequestIdRef.current;
 
     setLoading(true);
     setError(null);
@@ -226,8 +237,13 @@ export default function JobsDashboard() {
       const res = await fetch(`${API_BASE}/jobs?${params.toString()}`, { signal: controller.signal });
       clearTimeout(timeoutId);
 
+      // Discard stale responses if a newer request was dispatched
+      if (requestId !== lastRequestIdRef.current) return;
+
       if (res.ok) {
         const data = await res.json();
+        if (requestId !== lastRequestIdRef.current) return;
+
         const items: Job[] = data.items || [];
         const tot = data.total || 0;
         if (tot > 0) setTotal(tot);
@@ -241,31 +257,106 @@ export default function JobsDashboard() {
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name === "AbortError") return;
-      setError("Failed to connect to API");
+      if (requestId === lastRequestIdRef.current) {
+        setError("Failed to connect to API");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === lastRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [query, locationState, selectedFunctions, datePosted, remoteType, source, selectedSkills]);
 
-  // Reset to page 1 on filter change
-  useEffect(() => {
-    setPage(1);
-    fetchJobs(1);
-  }, [fetchJobs]);
+  // Deterministic filter signature to detect intentional query changes
+  const filterKey = useMemo(() => {
+    return JSON.stringify({
+      q: query,
+      country: locationState.country,
+      loc: locationState.cityOrState,
+      allLoc: locationState.allLocationsInCountry,
+      fns: [...selectedFunctions].sort(),
+      dp: datePosted,
+      rt: remoteType,
+      src: source,
+      skills: [...selectedSkills].sort(),
+    });
+  }, [query, locationState, selectedFunctions, datePosted, remoteType, source, selectedSkills]);
 
-  // Re-fetch on user auth change
+  const prevFilterKeyRef = useRef<string>(filterKey);
+  const prevPageRef = useRef<number>(currentPage);
+  const skipNextPageFetchRef = useRef<boolean>(false);
+  const isInitialMountRef = useRef<boolean>(true);
+
+  // Unified Fetch & Navigation Orchestrator:
+  // - Handles initial mount with URL-specified page
+  // - Handles filter changes (resets URL to page 1 & fetches page 1)
+  // - Handles page navigation (URL updates trigger fetch)
   useEffect(() => {
-    if (user) {
-      jobsMemoryCache.clear();
-      setPage(1);
-      fetchJobs(1);
+    // 1. Initial Mount: fetch the URL page directly
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      prevFilterKeyRef.current = filterKey;
+      prevPageRef.current = currentPage;
+      fetchJobs(currentPage);
+      return;
     }
-  }, [user, fetchJobs]);
+
+    // 2. Filter / Query Change: intentionally reset pagination to page 1
+    if (filterKey !== prevFilterKeyRef.current) {
+      prevFilterKeyRef.current = filterKey;
+
+      if (currentPage !== 1 || searchParams.has("page")) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("page");
+        const qs = params.toString();
+        const targetUrl = qs ? `${pathname}?${qs}` : pathname;
+        skipNextPageFetchRef.current = true;
+        router.replace(targetUrl, { scroll: false });
+      }
+
+      prevPageRef.current = 1;
+      fetchJobs(1);
+      return;
+    }
+
+    // 3. Page Change (Pagination click, browser Back/Forward)
+    if (currentPage !== prevPageRef.current) {
+      prevPageRef.current = currentPage;
+
+      if (skipNextPageFetchRef.current) {
+        skipNextPageFetchRef.current = false;
+        return;
+      }
+
+      fetchJobs(currentPage);
+      return;
+    }
+  }, [currentPage, filterKey, fetchJobs, searchParams, pathname, router]);
+
+  // User auth account tracking:
+  // Only refetches if the authenticated account ID actually changes, preserving current page
+  const prevUserIdRef = useRef<string | null>(user?.id ?? null);
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    if (prevUserIdRef.current !== currentUserId) {
+      prevUserIdRef.current = currentUserId;
+      if (currentUserId) {
+        fetchJobs(currentPage);
+      }
+    }
+  }, [user?.id, currentPage, fetchJobs]);
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages || newPage === page) return;
-    setPage(newPage);
-    fetchJobs(newPage);
+    if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (newPage === 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(newPage));
+    }
+    const qs = params.toString();
+    const targetUrl = qs ? `${pathname}?${qs}` : pathname;
+    router.push(targetUrl, { scroll: false });
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 380, behavior: "smooth" });
     }
@@ -778,7 +869,7 @@ export default function JobsDashboard() {
           </div>
           <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-secondary)", margin: 0 }}>{error}</h3>
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 8 }}>Check that the backend is running and try again</p>
-          <button className="btn-primary" onClick={() => fetchJobs(page)} style={{ marginTop: 16 }}>
+          <button className="btn-primary" onClick={() => fetchJobs(currentPage)} style={{ marginTop: 16 }}>
             Retry
           </button>
         </div>
@@ -848,9 +939,9 @@ export default function JobsDashboard() {
       )}
 
       {/* ── Persistent Pagination Bar (Stays visible across page transitions) ── */}
-      {(totalPages > 1 || effectiveTotal > DEFAULT_PAGE_SIZE || page > 1) && !error && (
+      {(totalPages > 1 || effectiveTotal > DEFAULT_PAGE_SIZE || currentPage > 1) && !error && (
         <JobPagination
-          page={page}
+          page={currentPage}
           totalPages={totalPages}
           totalJobs={effectiveTotal}
           loading={loading}
@@ -959,5 +1050,21 @@ export default function JobsDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16, marginTop: 32 }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      }
+    >
+      <JobsDashboard />
+    </Suspense>
   );
 }
